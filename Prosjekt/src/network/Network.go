@@ -8,18 +8,19 @@ import (
   "os"
 )
 
-constant (
-	OwnIP = "129.241.187.140"
-	OwnPort = "20001"
-	Baddr = "129.241.187.255"
+const (
+	OwnIP  = "129.241.187.140"
+	OwnPort  = "20001"
+	Baddr  = "129.241.187.255"
 )
 
 func UDPBroadcast(c_broadcast chan []byte) {
-	buffer := make([]byte(<- c_broadcast))
+	
+	buffer := <- c_broadcast
 
-	raddr, err1 := net.resolveUDPaddr("udp", Baddr+":"+OwnPort)
+	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
-		if err != nil {
+		if err1 != nil {
 		fmt.Printf("Problemer med resolveUDPaddr")
 		os.Exit(1)
 		}
@@ -32,7 +33,14 @@ func UDPBroadcast(c_broadcast chan []byte) {
 		}	
 
 	for {
-		n, _ = socket.Write(buffer)
+		n , err3 := socket.Write(buffer)
+		fmt.Printf("skrev %i bytes", n)
+
+		if err3 != nil {
+		fmt.Printf("Problemer med Write")
+		os.Exit(3)
+		}
+
 		time.Sleep(1000 * time.Millisecond)
 		
 		}
@@ -40,19 +48,20 @@ func UDPBroadcast(c_broadcast chan []byte) {
 }
 
 func UDPListen(c_listen chan []byte){
-	buffer := make([]byte)
+	buffer := make([]byte, 1024)
 
-	raddr, err1 := net.resolveUDPaddr("udp", nil, Baddr+":"OwnPort)
+	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 		
 		if err1 != nil {
 		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(3)
+		os.Exit(4)
 		}
 
 	socket, _ := net.ListenUDP("udp4", raddr)
 
 	for {
-		n, _, _ = socket.ReadFromUDP(buffer)
+		n, _, _ := socket.ReadFromUDP(buffer)
+		fmt.Printf("skrev %i bytes", n)
 		c_listen <- buffer
 
 	}
