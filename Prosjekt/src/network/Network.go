@@ -16,7 +16,7 @@ const (
 
 func UDPBroadcast(c_broadcast chan []byte) {
 	
-	buffer := <- c_broadcast
+	
 
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
@@ -33,6 +33,7 @@ func UDPBroadcast(c_broadcast chan []byte) {
 		}	
 
 	for {
+		buffer := <- c_broadcast
 		n , err3 := socket.Write(buffer)
 		fmt.Printf("skrev %i bytes", n)
 
