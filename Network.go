@@ -14,7 +14,7 @@ constant (
 	Baddr := "129.241.187.255"
 )
 
-func UDPBroadcast(data str) {
+func UDPBroadcast(data str) n int{
 	buffer := make([]byte(data))
 
 	raddr, err1 := net.resolveUDPaddr("udp", Baddr+":"+OwnPort)
@@ -27,13 +27,21 @@ func UDPBroadcast(data str) {
 	socket, err2 := net.DialUDP ("udp", nil, raddr)
 
 	n, _ = socket.Write(buffer)
+	return n
 
-	
+
 
 }
 
 func UDPListen(){
 	buffer := make([]byte)
+
+	raddr, err := net.resolveUDPaddr("udp", nil, Baddr+":"OwnPort)
+	socket, _ := net.ListenUDP()
+
+
+
+
 
 
 }
