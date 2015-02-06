@@ -14,34 +14,45 @@ constant (
 	Baddr := "129.241.187.255"
 )
 
-func UDPBroadcast(data str) n int{
-	buffer := make([]byte(data))
+func UDPBroadcast(c_broadcast chan []byte) {
+	buffer := make([]byte(<- c_broadcast))
 
 	raddr, err1 := net.resolveUDPaddr("udp", Baddr+":"+OwnPort)
 
 		if err != nil {
-		fmt.Printf("Addresse dritt")
+		fmt.Printf("Problemer med resolveUDPaddr")
 		os.Exit(1)
 		}
 
 	socket, err2 := net.DialUDP ("udp", nil, raddr)
 
-	n, _ = socket.Write(buffer)
-	return n
+		if err2 != nil {
+		fmt.Printf("Problemer med Dial")
+		os.Exit(2)
+		}	
 
+	n, _ = socket.Write(buffer)
 
 
 }
 
-func UDPListen(){
+func UDPListen(c_listen chan []byte){
 	buffer := make([]byte)
 
-	raddr, err := net.resolveUDPaddr("udp", nil, Baddr+":"OwnPort)
-	socket, _ := net.ListenUDP()
+	raddr, err1 := net.resolveUDPaddr("udp", nil, Baddr+":"OwnPort)
+		
+		if err1 != nil {
+		fmt.Printf("Problemer med resolveUDPaddr")
+		os.Exit(3)
+		}
 
+	socket, _ := net.ListenUDP("udp4", raddr)
 
+	for {
+		n, _, _ = socket.ReadFromUDP(buffer)
+		c_listen <- buffer
 
-
+	}
 
 
 }
