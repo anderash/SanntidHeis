@@ -2,7 +2,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"network"
 	"time"
 	"runtime"
@@ -18,12 +18,12 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	go UDPBroadcast(c_broadcast)
-	go UDPLIsten(c_listen)
+	go network.UDPBroadcast(c_broadcast)
+	go network.UDPListen(c_listen)
 
 	time.Sleep(100*time.Millisecond)
 
-	fmt.Printf("Antall bytes sendt: %i", nrBsendt)
+	//fmt.Printf("Antall bytes sendt: %i", nrBsendt)
 
 
 }
