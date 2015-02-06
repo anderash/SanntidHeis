@@ -4,7 +4,6 @@ package main
 import (
 	//"fmt"
 	"network"
-	"time"
 	"runtime"
 	)
 
@@ -21,7 +20,8 @@ func main() {
 	go network.UDPBroadcast(c_broadcast)
 	go network.UDPListen(c_listen)
 
-	time.Sleep(100*time.Millisecond)
+	c := make(chan int)
+	<- c
 
 	//fmt.Printf("Antall bytes sendt: %i", nrBsendt)
 
