@@ -2,9 +2,11 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
 	"./network"
 	"runtime"
+	"time"
+
 	)
 
 func main() {
@@ -19,11 +21,15 @@ func main() {
 	go network.UDPBroadcast(c_broadcast)
 	go network.UDPListen(c_listen)
 
+	for{
+		c_broadcast <- []byte(melding)
+		time.Sleep(1000*time.Millisecond)
+		listen_message := <- c_listen
+		fmt.Printf("%s", string(listen_message)+"\n")
+	}
 	
-	c_broadcast <- []byte(melding)
 
-	c := make(chan int)
-	<- c
+
 
 	//fmt.Printf("Antall bytes sendt: %i", nrBsendt)
 

@@ -4,7 +4,7 @@ package network
 import (
   "fmt"
   "net"
-  "time"
+  //"time"
   "os"
 )
 
@@ -34,15 +34,13 @@ func UDPBroadcast(c_broadcast chan []byte) {
 
 	for {
 		buffer := <- c_broadcast
-		n , err3 := socket.Write(buffer)
-		fmt.Printf("skrev %i bytes", n)
+		_ , err3 := socket.Write(buffer)
+		//fmt.Printf("skrev %i bytes", n)
 
 		if err3 != nil {
 		fmt.Printf("Problemer med Write")
 		os.Exit(3)
 		}
-
-		time.Sleep(1000 * time.Millisecond)
 		
 		}
 
@@ -61,9 +59,16 @@ func UDPListen(c_listen chan []byte){
 	socket, _ := net.ListenUDP("udp4", raddr)
 
 	for {
-		n, _, _ := socket.ReadFromUDP(buffer)
-		fmt.Printf("skrev %i bytes", n)
+		_, err4 := socket.Read(buffer)
+
+		if err4 != nil {
+			fmt.Printf("Problemer med resolveUDPaddr")
+			os.Exit(5)
+		}
+
+		//fmt.Printf(string(buffer))
 		c_listen <- buffer
+		//time.Sleep(100*time.Millisecond)
 
 	}
 
