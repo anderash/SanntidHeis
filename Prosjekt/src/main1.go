@@ -1,4 +1,4 @@
-// main
+// Main for testing network module
 package main
 
 import (
