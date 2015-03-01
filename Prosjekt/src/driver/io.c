@@ -5,9 +5,8 @@
 // 2006, Martin Korsgaard
 
 
-#include "io.h"
+//#include "inputoutput.h"
 #include "channels.h"
-
 #include <comedilib.h>
 
 
