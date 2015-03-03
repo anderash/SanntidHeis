@@ -47,7 +47,21 @@ func Get_floor_signal() int {
 	}
 }
 
-func Get_button_signal() {
+// Utestet
+func Get_button_signal() (int, int) {
+	for i := 0; i < N_FLOORS; i++ {
+		for j := 0; j < 3; j++ {
+			if button_matrix[i][j] != -1 && C.io_read_bit(C.int(button_matrix[i][j]) == 1){
+				return i, j
+				// i tilsvarer etage (0 = 1. etg, 1 = 2. etg. osv)
+				// j tilsvarer type knapp. (0 = opp-knapp, 1 = ned-knapp, 2 = knapp inne i heis)
+			}else{
+				continue
+			}
+		}
+	}
+	return -1, -1
+	//Dette returneres hvis ingen knapp detektert
 
 }
 
@@ -87,8 +101,10 @@ func Set_motor_direction(int direction) {
 }
 
 
-func Check_Input(chan input type) {
-	for  {
-		
-	}
+func Check_input(chan c_input type) {
+	//For loop skal kjøre evig og sjekke etter input
+}
+
+func Send_output(chan c_output type) {
+	//For loop skal kjøre evig og vente på output på kanalen som den skal sende ut
 }
