@@ -32,14 +32,15 @@ func Initiate() {
 	fmt.Printf("Initiated!\n")
 }
 
+// Funker
 func Get_floor_signal() int {
-	if C.io_read_bit(C.int(SENSOR_FLOOR1)) {
+	if C.io_read_bit(C.int(SENSOR_FLOOR1)) == 1 {
 		return 0
-	} else if C.io_read_bit(C.int(SENSOR_FLOOR2)) {
+	} else if C.io_read_bit(C.int(SENSOR_FLOOR2)) == 1 {
 		return 1
-	} else if C.io_read_bit(C.int(SENSOR_FLOOR3)) {
+	} else if C.io_read_bit(C.int(SENSOR_FLOOR3)) == 1 {
 		return 2
-	} else if C.io_read_bit(C.int(SENSOR_FLOOR4)) {
+	} else if C.io_read_bit(C.int(SENSOR_FLOOR4)) == 1{
 		return 3
 	} else {
 		return -1
@@ -50,6 +51,7 @@ func Get_button_signal() {
 
 }
 
+// Noe rart. Tenner flere lamper enn det den skal
 func Set_button_lamp(button int, value int) {
 	if button == -1 {
 		return
@@ -61,6 +63,7 @@ func Set_button_lamp(button int, value int) {
 	}
 }
 
+// Noe rart. Tenner flere lamper enn det den skal
 func Set_door_open_lamp(value int) {
 	if value == 1 {
 		C.io_set_bit(LIGHT_DOOR_OPEN)
@@ -69,6 +72,7 @@ func Set_door_open_lamp(value int) {
 	}
 }
 
+// Funker!
 func Set_motor_direction(int direction) {
 	if direction == 0 {
 		C.io_write_analog(C.int(MOTOR), 0)
@@ -82,11 +86,6 @@ func Set_motor_direction(int direction) {
 
 }
 
-// func main(){
-// 	initiate()
-// 	set_door_open_lamp(1)
-
-// }
 
 func Check_Input(chan input type) {
 	for  {
