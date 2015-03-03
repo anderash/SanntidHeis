@@ -87,3 +87,9 @@ func Set_motor_direction(int direction) {
 // 	set_door_open_lamp(1)
 
 // }
+
+func Check_Input(chan input type) {
+	for  {
+		
+	}
+}
