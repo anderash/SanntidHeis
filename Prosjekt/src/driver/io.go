@@ -50,6 +50,21 @@ func Set_door_open_lamp(value int){
 	}
 }
 
+func Set_motor_direction(int direction){
+	if direction == 0 {
+		C.io_write_analog(C.int(MOTOR),0)
+	} else if direction > 0{
+		C.io_clear_bit(C.int(MOTORDIR))
+		C.io_write_analog(C.int(MOTOR), 2800)
+	} else if direction < 0 {
+        C.io_set_bit(MOTORDIR)
+        C.io_write_analog(MOTOR, 2800)
+    }
+
+}
+
+
+
 // func main(){
 // 	initiate()
 // 	set_door_open_lamp(1)
