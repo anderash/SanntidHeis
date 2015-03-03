@@ -32,7 +32,7 @@ func Initiate(){
 	fmt.Printf("Initiated!\n")
 }
 
-func Elev_get_floor_signal() {
+func Get_floor_signal() int {
 	    if (C.io_read_bit(C.int(SENSOR_FLOOR1)))
         return 0;
     else if (C.io_read_bit(C.int(SENSOR_FLOOR2)))
@@ -44,6 +44,12 @@ func Elev_get_floor_signal() {
     else
         return -1;
 }
+
+func Get_button_signal() {
+	
+}
+
+
 
 func Set_button_lamp(button int, value int){
 	if button == -1{
