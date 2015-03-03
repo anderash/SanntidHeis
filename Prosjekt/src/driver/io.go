@@ -12,7 +12,8 @@ import(
 )
 
 // Denne bør helst endres til const!!
-var button_matrix = [4][3]int{[3]int{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
+var button_matrix = [4][3]int{
+				[3]int{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
     			[3]int{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
    				[3]int{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
     			[3]int{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4}}
