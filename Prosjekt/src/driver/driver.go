@@ -25,7 +25,7 @@ var buttonlight_matrix = [N_FLOORS][3]int{
 	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4}}
 
 
-func Initiate() {
+func Initiate(chan c_input Input) {
 	Io_init()
 
 	// Zero all floor button lamps

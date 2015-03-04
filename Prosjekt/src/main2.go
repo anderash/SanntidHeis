@@ -7,9 +7,23 @@ import(
 	// "time"
 )
 
+
+const(
+
+)
+
+type Input struct{
+	SENSOR_TYPE int
+	BUTTON_TYPE int
+	FLOOR int
+
+}
+
 func main() {
-	fmt.Printf("Starting driver\n")
-	driver.Initiate()
+	c_input := make(chan Input)
+
+	driver.Initiate(c_input)
+	
 	driver.Set_motor_direction(0)
 
 	// for {
