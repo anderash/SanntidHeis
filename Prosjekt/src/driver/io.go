@@ -6,14 +6,12 @@ package driver
 */
 import "C"
 
-import "fmt"
 
 func Io_init() int {
 	return int(C.io_init())
 }
 
 func Io_set_bit(channel int){
-	fmt.Printf("Setting bit\n")
 	C.io_set_bit(C.int(channel))
 }
 

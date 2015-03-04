@@ -9,9 +9,64 @@ import "C"
 
 import (
 	"fmt"
+	"encoding/json"
 )
 
-// Denne bør helst endres til const!!
+type Input struct{
+	INPUT_TYPE int
+	/*
+	button = 0
+	floor = 1
+	*/
+	BUTTON_TYPE int
+	/*
+	BUTTON_CALL_UP = 0
+    BUTTON_CALL_DOWN = 1
+    BUTTON_COMMAND = 2
+    NO_BUTTON = -1
+	*/
+	FLOOR int
+
+}
+
+type Output struct{
+	OUTPUT_TYPE int
+	/*
+	LIGHT = 0
+	MOTOR = 1 
+	*/
+
+	LIGHT_TYPE int
+	/*
+	BUTTON_LAMP = 0
+	FLOOR_INDICATOR = 1
+	*/
+
+	BUTTON_TYPE int
+	/*
+	BUTTON_CALL_UP = 0
+    BUTTON_CALL_DOWN = 1
+    BUTTON_COMMAND = 2
+    NO_BUTTON = -1
+	*/
+
+	FLOOR int
+
+	VALUE int
+	/*
+	on = 1
+	off = 0
+	*/
+
+	OUTPUT_DIRECTION int
+	/*
+	UP = 1
+	STOP = 0
+	DOWN = -1
+	*/
+}
+
+// Denne bør helst endres til const (hvis mulig)
 var button_matrix = [N_FLOORS][3]int{
 	{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
 	{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
@@ -25,7 +80,7 @@ var buttonlight_matrix = [N_FLOORS][3]int{
 	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4}}
 
 
-func Initiate(chan c_input Input) {
+func Initiate(c_input chan []byte, c_output chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -46,6 +101,8 @@ func Initiate(chan c_input Input) {
 	Set_motor_direction(0)
 
 
+	go Check_input(c_input)
+	go Send_output(c_output)
 
 	fmt.Printf("Initiated!\n")
 }
@@ -65,7 +122,7 @@ func Get_floor_signal() int {
 	}
 }
 
-// Funker
+// Denne vil ikke få med seg knappetrykk dersom noen holder en knapp inne i en lavere etg. Må fikses!
 func Get_button_signal() (int, int) {
 	for i := 0; i < N_FLOORS; i++ {
 		for j := 0; j < 3; j++ {
@@ -133,15 +190,51 @@ func Set_motor_direction(direction int) {
 
 
 
-/*
-/
-func Check_input(chan c_input type) {
-	return
-	//For loop skal kjøre evig og sjekke etter input
+// Funker
+func Check_input(c_input chan []byte) {
+	for {
+		if floor, button_type := Get_button_signal(); floor != -1 {
+			input := Input{BUTTON, button_type, floor}
+			encoded_input, err := json.Marshal(input)
+			if err != nil{
+				fmt.Println("error: ", err)
+			}
+			c_input <- encoded_input
+		}
+		if floor := Get_floor_signal(); floor != -1 {
+			input := Input{FLOOR_SENSOR, NOT_A_BUTTON, floor}
+			encoded_input, err2 := json.Marshal(input)
+			if err2 != nil{
+				fmt.Println("error: ", err2)
+			}
+			c_input <- encoded_input
+		} 
+	}
 }
 
-func Send_output(chan c_output type) {
-	return
-	//For loop skal kjøre evig og vente på output på kanalen som den skal sende ut
+
+
+// IKKE KOMPLETT
+func Send_output(c_output chan []byte) {
+	var decoded_output Output
+	for{
+		select{
+		case output := <- c_output:
+			err3 := json.Unmarshal(output, &decoded_output)
+			if err3 != nil{
+				fmt.Println("error: ", err3)
+			}
+
+			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
+				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
+					Set_floor_indicator(decoded_output.FLOOR)
+				} else{
+					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
+				}
+			}
+
+		}
+	}
+
 }
-*/
+

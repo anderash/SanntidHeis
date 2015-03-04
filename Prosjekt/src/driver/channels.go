@@ -61,4 +61,23 @@ const(
 	BUTTON_CALL_UP = 0
     BUTTON_CALL_DOWN = 1
     BUTTON_COMMAND = 2
+    NOT_A_BUTTON = -1
+
+    //sensor/input types
+    BUTTON = 0
+    FLOOR_SENSOR = 1
+
+    //output types
+    LIGHT_OUTPUT = 0
+    MOTOR_OUTPUT = 1
+
+    //light types
+    BUTTON_LAMP = 0
+	FLOOR_INDICATOR = 1
+
+	//output direction
+	UP = 1
+	STOP_MOTOR = 0
+	DOWN = -1
+
 )
