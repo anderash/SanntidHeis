@@ -36,17 +36,26 @@ func main() {
 	go network.UDPListen(c_listen, c_NrBytes)
 
 	for {
-		c_broadcast <- []byte(encoded_melding)
-		time.Sleep(1000 * time.Millisecond)
-		listen_message := <-c_listen
-		length := <- c_NrBytes
-		stripped := listen_message[:length]
-		err := json.Unmarshal(stripped, &recieved)
-		if err != nil {
-			fmt.Println("error: ", err)
+		if (melding.Floor > 0){
+			c_broadcast <- []byte(encoded_melding)
+			time.Sleep(1000 * time.Millisecond)
 		}
+		select{
+			case listen_message := <-c_listen:
+				length := <- c_NrBytes
+				stripped := listen_message[:length]
+				err := json.Unmarshal(stripped, &recieved)
+				if err != nil {
+					fmt.Println("error: ", err)
+				}
 
-		fmt.Println("Alive = ", recieved.Alive, "Melding = ", recieved.Message, "Floor = ", recieved.Floor)
+				fmt.Println("Alive = ", recieved.Alive, "Melding = ", recieved.Message, "Floor = ", recieved.Floor)
+				melding.Floor = melding.Floor - 1
+			case <-time.After(3000 * time.Millisecond):
+				fmt.Printf("Timeout! Did not get a new message")
+		}	
+		
+		
 	}
 
 	//fmt.Printf("Antall bytes sendt: %i", nrBsendt)
