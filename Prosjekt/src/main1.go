@@ -14,12 +14,12 @@ type Melding struct {
 
 	Message string
 
-	FLOOR int
+	Floor int
 }
 
 func main() {
 	melding := Melding{true, "Hei", 5}
-	encoded_melding, err2 := json.Marshal(output)
+	encoded_melding, err2 := json.Marshal(melding)
 	if err2 != nil {
 		fmt.Println("error: ", err2)
 	}
