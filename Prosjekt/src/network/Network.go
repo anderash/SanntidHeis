@@ -44,7 +44,7 @@ func UDPBroadcast(c_broadcast chan []byte) {
 
 }
 
-func UDPListen(c_listen chan []byte){
+func UDPListen(c_listen chan []byte, c_NrBytes chan int){
 	buffer := make([]byte, 1024)
 
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
@@ -57,7 +57,7 @@ func UDPListen(c_listen chan []byte){
 	socket, _ := net.ListenUDP("udp4", raddr)
 
 	for {
-		_, err4 := socket.Read(buffer)
+		i, err4 := socket.Read(buffer)
 
 		if err4 != nil {
 			fmt.Printf("Problemer med resolveUDPaddr")
@@ -66,6 +66,7 @@ func UDPListen(c_listen chan []byte){
 
 		//fmt.Printf(string(buffer))
 		c_listen <- buffer
+		c_NrBytes <- i
 		//time.Sleep(100*time.Millisecond)
 
 	}
