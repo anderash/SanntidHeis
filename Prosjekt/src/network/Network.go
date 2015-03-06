@@ -6,6 +6,7 @@ import (
   "net"
   //"time"
   "os"
+  "errors"
 )
 
 const (
@@ -16,20 +17,18 @@ const (
 
 func UDPBroadcast(c_broadcast chan []byte) {
 	
-	
-
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
 		if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(1)
+			fmt.Printf("Problemer med resolveUDPaddr")
+			os.Exit(1)
 		}
 
 	socket, err2 := net.DialUDP ("udp", nil, raddr)
 
 		if err2 != nil {
-		fmt.Printf("Problemer med Dial")
-		os.Exit(2)
+			fmt.Printf("Problemer med Dial")
+			os.Exit(2)
 		}	
 
 	for {
@@ -38,11 +37,10 @@ func UDPBroadcast(c_broadcast chan []byte) {
 		//fmt.Printf("skrev %i bytes", n)
 
 		if err3 != nil {
-		fmt.Printf("Problemer med Write")
-		os.Exit(3)
-		}
-		
-		}
+			fmt.Printf("Problemer med Write")
+			os.Exit(3)
+		}		
+	}
 
 }
 
@@ -52,8 +50,8 @@ func UDPListen(c_listen chan []byte){
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 		
 		if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(4)
+			fmt.Printf("Problemer med resolveUDPaddr")
+			os.Exit(4)
 		}
 
 	socket, _ := net.ListenUDP("udp4", raddr)
@@ -73,4 +71,41 @@ func UDPListen(c_listen chan []byte){
 	}
 
 
+}
+
+func externalIP() (string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil {
+				continue // not an ipv4 address
+			}
+			return ip.String(), nil
+		}
+	}
+	return "", errors.New("are you connected to the network?")
 }
