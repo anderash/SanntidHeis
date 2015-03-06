@@ -6,6 +6,7 @@ import (
   "net"
   //"time"
   "os"
+  "errors"
 )
 
 const (
@@ -16,20 +17,18 @@ const (
 
 func UDPBroadcast(c_broadcast chan []byte) {
 	
-	
-
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
 		if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(1)
+			fmt.Printf("Problemer med resolveUDPaddr")
+			os.Exit(1)
 		}
 
 	socket, err2 := net.DialUDP ("udp", nil, raddr)
 
 		if err2 != nil {
-		fmt.Printf("Problemer med Dial")
-		os.Exit(2)
+			fmt.Printf("Problemer med Dial")
+			os.Exit(2)
 		}	
 
 	for {
@@ -38,11 +37,10 @@ func UDPBroadcast(c_broadcast chan []byte) {
 		//fmt.Printf("skrev %i bytes", n)
 
 		if err3 != nil {
-		fmt.Printf("Problemer med Write")
-		os.Exit(3)
-		}
-		
-		}
+			fmt.Printf("Problemer med Write")
+			os.Exit(3)
+		}		
+	}
 
 }
 
@@ -52,8 +50,8 @@ func UDPListen(c_listen chan []byte){
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 		
 		if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(4)
+			fmt.Printf("Problemer med resolveUDPaddr")
+			os.Exit(4)
 		}
 
 	socket, _ := net.ListenUDP("udp4", raddr)
