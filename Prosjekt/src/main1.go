@@ -19,10 +19,7 @@ type Melding struct {
 
 func main() {
 	melding := Melding{true, "Hei", 4}
-	encoded_melding, err2 := json.Marshal(melding)
-	if err2 != nil {
-		fmt.Println("error: ", err2)
-	}
+
 
 	var recieved Melding
 
@@ -37,6 +34,10 @@ func main() {
 
 	for {
 		if (melding.Floor > 0){
+			encoded_melding, err2 := json.Marshal(melding)
+			if err2 != nil {
+				fmt.Println("error: ", err2)
+			}
 			c_broadcast <- []byte(encoded_melding)
 			time.Sleep(1000 * time.Millisecond)
 		}
