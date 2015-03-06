@@ -36,8 +36,10 @@ func main() {
 	go network.UDPListen(c_listen, c_NrBytes)
 
 	for {
-		c_broadcast <- []byte(encoded_melding)
-		time.Sleep(1000 * time.Millisecond)
+		if (melding.Floor > 0){
+			c_broadcast <- []byte(encoded_melding)
+			time.Sleep(1000 * time.Millisecond)
+		}
 		select{
 			case listen_message := <-c_listen:
 				length := <- c_NrBytes
@@ -48,7 +50,7 @@ func main() {
 				}
 
 				fmt.Println("Alive = ", recieved.Alive, "Melding = ", recieved.Message, "Floor = ", recieved.Floor)
-		
+				melding.Floor = melding.Floor - 1
 			case <-time.After(3000 * time.Millisecond):
 				fmt.Printf("Timeout! Did not get a new message")
 		}	
