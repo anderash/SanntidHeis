@@ -4,9 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 )
 
 func main() {
+
+	host, _ := os.Hostname()
+	addrs, err := net.LookupIP(host)
+	for _, addr := range addrs {
+   	 	if ipv4 := addr.To4(); ipv4 != nil {
+    	    fmt.Println("IPv4: ", ipv4)
+    	}   
+	}
 
 	ip, err := externalIP()
 	if err != nil {
@@ -52,3 +61,4 @@ func externalIP() (string, error) {
 	}
 	return "", errors.New("are you connected to the network?")
 }
+
