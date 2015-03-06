@@ -15,8 +15,8 @@ import (
 type Input struct{
 	INPUT_TYPE int
 	/*
-	button = 0
-	floor = 1
+	BUTTON = 0
+	FLOOR_SENSOR = 1
 	*/
 	BUTTON_TYPE int
 	/*
@@ -32,8 +32,8 @@ type Input struct{
 type Output struct{
 	OUTPUT_TYPE int
 	/*
-	LIGHT = 0
-	MOTOR = 1 
+	LIGHT_OUTPUT = 0
+	MOTOR_OUTPUT = 1 
 	*/
 
 	LIGHT_TYPE int
@@ -79,7 +79,12 @@ var buttonlight_matrix = [N_FLOORS][3]int{
 	{LIGHT_UP3, LIGHT_DOWN3, LIGHT_COMMAND3},
 	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4}}
 
-var status_matrix = [N_FLOORS][3]
+var button_status = [N_FLOORS][3]int{
+		{0,0,0},
+		{0,0,0},
+		{0,0,0}}
+
+var floor_status = [N_FLOORS]int{0,0,0,0}
 
 
 func Initiate(c_input chan []byte, c_output chan []byte) {
@@ -111,13 +116,29 @@ func Initiate(c_input chan []byte, c_output chan []byte) {
 
 // Funker
 func Get_floor_signal() int {
-	if Io_read_bit(SENSOR_FLOOR1) == 1 {
+	if Io_read_bit(SENSOR_FLOOR1) == 1 && floor_status[0] == 0{
+		for i := 0; i < N_FLOORS; i++ {
+			floor_status[i] = 0
+		}
+		floor_status[0] = 1
 		return 0
-	} else if Io_read_bit(SENSOR_FLOOR2) == 1 {
+	} else if Io_read_bit(SENSOR_FLOOR2) == 1 && floor_status[1] == 0{
+		for i := 0; i < N_FLOORS; i++ {
+			floor_status[i] = 0
+		}
+		floor_status[1] = 1
 		return 1
-	} else if Io_read_bit(SENSOR_FLOOR3) == 1 {
+	} else if Io_read_bit(SENSOR_FLOOR3) == 1 && floor_status[2] == 0{
+		for i := 0; i < N_FLOORS; i++ {
+			floor_status[i] = 0
+		}
+		floor_status[2] = 1
 		return 2
-	} else if Io_read_bit(SENSOR_FLOOR4) == 1{
+	} else if Io_read_bit(SENSOR_FLOOR4) == 1 && floor_status[3] == 0{
+		for i := 0; i < N_FLOORS; i++ {
+			floor_status[i] = 0
+		}	
+		floor_status[3] = 1
 		return 3
 	} else {
 		return -1
@@ -129,11 +150,14 @@ func Get_button_signal() (int, int) {
 	for i := 0; i < N_FLOORS; i++ {
 		for j := 0; j < 3; j++ {
 			if (button_matrix[i][j] != -1) && (Io_read_bit(button_matrix[i][j]) == 1){
-				return i, j
-				// i tilsvarer etage (0 = 1. etg, 1 = 2. etg. osv)
-				// j tilsvarer type knapp. (0 = opp-knapp, 1 = ned-knapp, 2 = knapp inne i heis)
+				if button_status[i][j] == 0 {
+					button_status[i][j] = 1
+					return i, j
+					// i tilsvarer etage (0 = 1. etg, 1 = 2. etg. osv)
+					// j tilsvarer type knapp. (0 = opp-knapp, 1 = ned-knapp, 2 = knapp inne i heis)
+				}
 			}else{
-				continue
+				button_status[i][j] = 0
 			}
 		}
 	}
@@ -194,13 +218,9 @@ func Set_motor_direction(direction int) {
 
 // Funker.
 func Check_input(c_input chan []byte) {
-	var button_status [N_FLOORS][3]int := {
-		{0,0,0},
-		{0,0,0},
-		{0,0,0}}
 
 	for {
-		if floor, button_type := Get_button_signal(); floor != -1 && {
+		if floor, button_type := Get_button_signal(); floor != -1 {
 			input := Input{BUTTON, button_type, floor}
 			encoded_input, err := json.Marshal(input)
 			if err != nil{
@@ -208,6 +228,7 @@ func Check_input(c_input chan []byte) {
 			}
 			c_input <- encoded_input
 		}
+
 		if floor := Get_floor_signal(); floor != -1 {
 			input := Input{FLOOR_SENSOR, NOT_A_BUTTON, floor}
 			encoded_input, err2 := json.Marshal(input)
@@ -218,7 +239,6 @@ func Check_input(c_input chan []byte) {
 		} 
 	}
 }
-
 
 
 // IKKE KOMPLETT
@@ -240,6 +260,10 @@ func Send_output(c_output chan []byte) {
 				}
 			}
 
+
+			if decoded_output.OUTPUT_TYPE == MOTOR_OUTPUT {
+				Set_motor_direction(decoded_output.OUTPUT_DIRECTION)
+			}
 		}
 	}
 

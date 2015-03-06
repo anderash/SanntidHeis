@@ -82,21 +82,38 @@ func main() {
 			}
 			fmt.Println("Input:", decoded_input.INPUT_TYPE, "Button type:", decoded_input.BUTTON_TYPE, "Floor:", decoded_input.FLOOR)
 
-			if decoded_input.BUTTON_TYPE == driver.BUTTON{
+			if decoded_input.INPUT_TYPE == driver.BUTTON{
 					output := Output{driver.LIGHT_OUTPUT, driver.BUTTON_LAMP, decoded_input.BUTTON_TYPE, decoded_input.FLOOR, 1, 0}
 					encoded_output, err2 := json.Marshal(output)
 					if err2 != nil{
 						fmt.Println("error: ", err2)
 					}
 					c_output <- encoded_output
+					if decoded_input.BUTTON_TYPE == driver.BUTTON_COMMAND && decoded_input.FLOOR == 2{
+						output := Output{driver.MOTOR_OUTPUT, 0, 0, 0, 0, 1}
+						encoded_output, err3 := json.Marshal(output)
+						if err3 != nil{
+							fmt.Println("error: ", err3)
+						}
+						c_output <- encoded_output
+					}
 			}
+			if decoded_input.INPUT_TYPE == driver.FLOOR_SENSOR && decoded_input.FLOOR == 2{
+				output := Output{driver.MOTOR_OUTPUT, 0, 0, 0, 0, 0}
+				encoded_output, err4 := json.Marshal(output)
+				if err4 != nil{
+					fmt.Println("error: ", err4)
+				}
+				c_output <- encoded_output				
+			}
+			
 		}
 	}
 
-// 	output := Output{driver.LIGHT_OUTPUT, driver.FLOOR_INDICATOR, driver.NOT_A_BUTTON, 1, 1, 0}
-// 	encoded_output, err2 := json.Marshal(output)
-// 	if err2 != nil{
-// 		fmt.Println("error: ", err2)
-// 	}
-// 	c_output <- encoded_output
+	output := Output{driver.MOTOR_OUTPUT, 0, driver.NOT_A_BUTTON, 0, 0, 1}
+	encoded_output, err2 := json.Marshal(output)
+	if err2 != nil{
+		fmt.Println("error: ", err2)
+	}
+	c_output <- encoded_output
 }
