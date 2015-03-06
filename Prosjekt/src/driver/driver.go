@@ -79,6 +79,8 @@ var buttonlight_matrix = [N_FLOORS][3]int{
 	{LIGHT_UP3, LIGHT_DOWN3, LIGHT_COMMAND3},
 	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4}}
 
+var status_matrix = [N_FLOORS][3]
+
 
 func Initiate(c_input chan []byte, c_output chan []byte) {
 	Io_init()
@@ -190,10 +192,15 @@ func Set_motor_direction(direction int) {
 
 
 
-// Funker
+// Funker.
 func Check_input(c_input chan []byte) {
+	var button_status [N_FLOORS][3]int := {
+		{0,0,0},
+		{0,0,0},
+		{0,0,0}}
+
 	for {
-		if floor, button_type := Get_button_signal(); floor != -1 {
+		if floor, button_type := Get_button_signal(); floor != -1 && {
 			input := Input{BUTTON, button_type, floor}
 			encoded_input, err := json.Marshal(input)
 			if err != nil{
