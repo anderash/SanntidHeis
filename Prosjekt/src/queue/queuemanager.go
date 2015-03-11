@@ -104,4 +104,6 @@ func costFunction(elevator_ip string, order_floor int, button_dir string) int{
 			cost = dest_pos - current_elevator.POSITION
 		}
 	}
+
+	return cost
 }

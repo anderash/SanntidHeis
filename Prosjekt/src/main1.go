@@ -40,9 +40,9 @@ func main() {
 			}
 			c_broadcast <- []byte(encoded_melding)
 			time.Sleep(1000 * time.Millisecond)
-		}
+		} 
 		select{
-			case listen_message := <-c_listen:
+			case listen_message := <-c_lis ,ten:
 				length := <- c_NrBytes
 				stripped := listen_message[:length]
 				err := json.Unmarshal(stripped, &recieved)
