@@ -107,3 +107,9 @@ func costFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 	return cost
 }
+
+
+func ProsseserNyinfo(kanalFraHeisManager){
+/*
+	Oppdaterer ny info fra de andre heisene
+*/
