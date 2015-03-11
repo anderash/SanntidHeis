@@ -241,7 +241,7 @@ func Check_input(c_input chan []byte) {
 }
 
 
-// IKKE KOMPLETT
+//Funker, men med variabel reaksjonstid
 func Send_output(c_output chan []byte) {
 	var decoded_output Output
 	for{
