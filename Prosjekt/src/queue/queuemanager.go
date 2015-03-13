@@ -47,17 +47,10 @@ const(
 )
 
 // Indexen i map'en er ip-adressen til den aktuelle heisen
-var active_elevators =  make(map[string]Elevator)
+var active_elevators = make(map[string]Elevator)
 
-// Denne funkjsonen brukes kun ifm debugging
-func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int){
-	temp := active_elevators[ipaddr]
-	temp.POSITION = position
-	temp.DIRECTION = direction
-	temp.DESTINATION = destinasjon_pos
-	active_elevators[ipaddr] = temp
 
-}
+
 
 func InitQueuemanager(ipaddr string) {
 	my_ordermatrix := make([][]int, N_FLOORS)
@@ -69,6 +62,16 @@ func InitQueuemanager(ipaddr string) {
 	fmt.Println("Elevator", active_elevators[ipaddr].IPADDR, "online\n")
 }
 
+
+// Denne funkjsonen brukes kun ifm debugging
+func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int){
+	temp := active_elevators[ipaddr]
+	temp.POSITION = position
+	temp.DIRECTION = direction
+	temp.DESTINATION = destinasjon_pos
+	active_elevators[ipaddr] = temp
+
+}
 
 func AppendElevator(ipaddr string) {
 	new_ordermatrix := make([][]int, N_FLOORS) 
@@ -102,9 +105,21 @@ func  RemoveElevator(ipaddr string) {
 	fmt.Println("Deleting", ipaddr, "\n")
 }
 
-func AppendOrder() {
 // Bruker kostfunksjonen for å legge til ny ordre
-	
+func AppendOrder(button_type int, button_floor int) {
+	if button_type == 0 {
+		button_dir := "up"
+	} else if button_type == 1 {
+		button_dir := "down"
+	} else {
+
+	}
+
+	cost := 100
+
+	for i := range(active_elevators){
+		if 
+	}	
 }
 
 
