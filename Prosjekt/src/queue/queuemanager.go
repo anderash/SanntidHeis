@@ -9,13 +9,13 @@ type  Elevator struct{
 	POSITION int
 	/*
 	   Etg.			Pos. nr.
-	    1 ............ 1
-	  	  ............ 2
-		2 ............ 3
-		  ............ 4
-		3 ............ 5
-		  ............ 6
-		4 ............ 7
+	    1 ............ 0
+	  	  ............ 1
+		2 ............ 2
+		  ............ 3
+		3 ............ 4
+		  ............ 5
+		4 ............ 6
 	*/
 
 	DIRECTION int
@@ -24,6 +24,12 @@ type  Elevator struct{
 	*/
 
 	DESTINATION int
+	/*
+		1. etg = 0
+		2. etg = 1
+		3. etg = 2
+		4. etg = 3
+	*/
 
 	ORDER_MATRIX [][]int
 	/* 			inne_i_heis    ned       opp				Settes til 1 ved en ordre
@@ -43,7 +49,15 @@ const(
 // Indexen i map'en er ip-adressen til den aktuelle heisen
 var active_elevators =  make(map[string]Elevator)
 
+// Denne funkjsonen brukes kun ifm debugging
+func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int){
+	temp := active_elevators[ipaddr]
+	temp.POSITION = position
+	temp.DIRECTION = direction
+	temp.DESTINATION = destinasjon_pos
+	active_elevators[ipaddr] = temp
 
+}
 
 func InitQueuemanager(ipaddr string) {
 	my_ordermatrix := make([][]int, N_FLOORS)
@@ -52,7 +66,7 @@ func InitQueuemanager(ipaddr string) {
 	}
 	new_elevator := Elevator{ipaddr, 0, 0, 0, my_ordermatrix} 
 	active_elevators[ipaddr] = new_elevator
-	fmt.Println("Elevator", active_elevators[ipaddr].IPADDR, "online")
+	fmt.Println("Elevator", active_elevators[ipaddr].IPADDR, "online\n")
 }
 
 
@@ -70,6 +84,10 @@ func AppendElevator(ipaddr string) {
 func PrintActiveElevators() {
 	for i := range(active_elevators){
 		fmt.Println("Elevator:",active_elevators[i].IPADDR)
+		fmt.Println("Position:", active_elevators[i].POSITION)
+		fmt.Println("Direction:", active_elevators[i].DIRECTION)
+		fmt.Println("Destination:", active_elevators[i].DESTINATION)
+		fmt.Printf("Orders:\n")
 		for floor := 0; floor < N_FLOORS; floor++ {	
 			fmt.Println("Floor", floor + 1, ":", active_elevators[i].ORDER_MATRIX[floor])
 		}
@@ -85,31 +103,68 @@ func  RemoveElevator(ipaddr string) {
 }
 
 func AppendOrder() {
-
+// Bruker kostfunksjonen for å legge til ny ordre
 	
 }
 
-func costFunction(elevator_ip string, order_floor int, button_dir string) int{
+
+
+func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 	cost := 0
 	current_elevator := active_elevators[elevator_ip]
 
 	//Omregner etg. nr. til posisjonsnr. (Ihht. structen Elevator)
-	order_floor_pos := order_floor + (order_floor - 1)
-	dest_pos := current_elevator.DESTINATION + (current_elevator.DESTINATION - 1)
+	order_floor_pos := order_floor * 2
+	dest_pos := current_elevator.DESTINATION * 2
 
-	// Sjekker alle utfall hvor bestillingsknapp "opp" er trykket
-	if button_dir == "up" {
-		
-		if  current_elevator.DIRECTION == 1 && dest_pos >=  order_floor_pos {
-			cost = dest_pos - current_elevator.POSITION
+	switch {
+	case current_elevator.DIRECTION == 0:
+		if current_elevator.POSITION >= order_floor_pos {
+			cost = current_elevator.POSITION - order_floor_pos
+		} else {
+			cost = order_floor_pos - current_elevator.POSITION
 		}
+
+	case button_dir == "up" && current_elevator.DIRECTION == 1:
+		if current_elevator.POSITION <= order_floor_pos {
+			if current_elevator.DESTINATION >= order_floor_pos {
+				cost = order_floor_pos - current_elevator.POSITION
+			} else {
+				// + 3 sek for dør-åpen-ventetid før man kjører videre mot bestilling
+				cost = order_floor_pos - current_elevator.POSITION + 3 
+			}
+		} else {
+			cost = dest_pos - current_elevator.POSITION + 3 + dest_pos - order_floor_pos
+		}
+
+
+	case button_dir == "up" && current_elevator.DIRECTION == -1:
+		cost = current_elevator.POSITION - dest_pos + 3 + order_floor_pos - dest_pos
+
+
+	case button_dir == "down" && current_elevator.DIRECTION == -1:
+		if current_elevator.POSITION >= order_floor_pos {
+			if current_elevator.DESTINATION <= order_floor_pos {
+				cost = current_elevator.POSITION - order_floor_pos
+			} else {
+				cost = current_elevator.POSITION - order_floor_pos + 3
+			}
+		} else {
+			cost = current_elevator.POSITION - dest_pos + 3 + order_floor_pos - dest_pos
+		}
+
+	case button_dir == "down" && current_elevator.DIRECTION == 1:
+		cost = dest_pos - current_elevator.POSITION + 3 + dest_pos - order_floor_pos
+
 	}
 
 	return cost
 }
 
 
-func ProsseserNyinfo(kanalFraHeisManager){
+func ProsseserNyinfo( ){ //Tar inn kanal_fra_heis
 /*
 	Oppdaterer ny info fra de andre heisene
 */
+
+}
