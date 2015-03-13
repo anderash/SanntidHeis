@@ -2,6 +2,8 @@ package elevManager
 
 import (
 	"fmt"
+	"time"
+	"encoding/json"
 )
 
 /* Denne skal opprette ny goroutine for ny heis.
@@ -26,50 +28,75 @@ type ElevInfo struct {
 	ButtonFloor int
 }
 
-func InitBank(c_from_main chan []byte) {
+func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
 
-	c_to_queuemanager := make(chan []byte)
 	var info_package ElevInfo
-	var info_to_quemanager queueModuleInfo
 
 	bank := make(map[string]ElevInfo)
+	elev_channels := make(map[string]chan bool, 1)
 
 	for {
 		select {
-		case from_main <- c_from_main:
+		case from_main := <- c_from_main:
+
 			json_err := json.Unmarshal(from_main, &info_package)
 			if json_err != nil {
-				fmt.Println("error: ", err)
+				fmt.Println("error: ", json_err)
 			}
 
-			elev, in_bank := bank[info_package.IPADDR]
+			_, in_bank := bank[info_package.IPADDR]
+
 			if !in_bank {
 				c_newchannel := make(chan bool)
-				go spawnElevcheck(c_newchannel)
+				go spawnElevcheck(c_newchannel, info_package.IPADDR)
 
-				c_to_queuemanager <- info_package
+				elev_channels[info_package.IPADDR] = c_newchannel
+				fmt.Printf("Made new goroutine for elevator" + info_package.IPADDR + "\n")
 
-			} else if ElevInfo.FLAG_NEW_INFO == true {
-				denDetGjelderSinKanal <- DuLever
-				c_Kømodul <- NyInfo
+				encoded_message, err2 := json.Marshal(info_package)
+				if err2 != nil {
+					fmt.Println("error: ", err2)
+				}
+				c_to_queuemanager <- encoded_message
+
+			} else if info_package.F_NEW_INFO {
+				fmt.Printf("New info for IP %s, its now on %d floor", info_package.IPADDR, info_package.POSITION)
+
+				elev_channels[info_package.IPADDR] <- true
+
+				encoded_message, err2 := json.Marshal(info_package)
+				if err2 != nil {
+					fmt.Println("error: ", err2)
+				}
+				c_to_queuemanager <- encoded_message
 
 			} else {
 				// Kun fått alive-melding, send på den det gjelder sin kanal at du lever
-				denDetGjelderSinKanal <- DuLever
+				elev_channels[info_package.IPADDR] <- true
 			}
+
+		for IP, channel := range elev_channels{
+			case check <- channel:
+				fmt.Printf("Checked channel %s \n", IP)
+				if check == false{
+					delete(bank, "IP")
+				}
+
+		}
 
 		}
 	}
 }
 
-func spawnElevcheck(minKanal) {
+func spawnElevcheck(c_mychan chan bool, my_IP string) {
 	for {
 		select {
-		case <-minKanal:
-			//Jeg er i live
-		case <-timeout:
-			//Jeg døde
-			c_kømodul <- JegDøde
+		case <-c_mychan:
+			fmt.Printf("I: %s am alive\n", my_IP)
+		case <-time.After(3000 * time.Millisecond):
+			fmt.Printf("I: %s died\n", my_IP)
+			//c_kømodul <- JegDøde
+			c_mychan <- false
 			return
 		}
 	}
