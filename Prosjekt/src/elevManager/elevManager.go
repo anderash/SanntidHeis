@@ -12,20 +12,10 @@ Husk å også drepe goroutine
 
 */
 
-type main_Info {
+type ElevInfo {
 	IPADDR string
 	F_NEW_INFO bool
 
-	POSITION int
-	DIRECTION int
-	DESTINATION int
-
-	ButtonType int
-	ButtonFloor int
-}
-
-type queueModuleInfo{
-	IPADDR string
 	F_DEAD_ELEV bool
 
 	POSITION int
@@ -37,20 +27,32 @@ type queueModuleInfo{
 }
 
 
-func InitBank(Kanal fra main) {
+
+func InitBank(c_from_main chan []byte) {
 	
-	make c_Kømodul
+	c_to_queuemanager := make(chan []byte)
+	var info_package ElevInfo
+	var info_to_quemanager queueModuleInfo
+
+	bank := make(map[string]ElevInfo)
 
 	for{
 		select{
-			case: fraMain <- mainChan{
-				dekode info fraMain
-				if (nyElev) {
-					make nyElevKanal
-					go spawnElevcheck(nyElecKanal)
-					c_Kømodul <- NyHeis
+			case: from_main <- c_from_main{
+				json_err := json.Unmarshal(from_main, &info_package)
+				if json_err != nil {
+					fmt.Println("error: ", err)
+				}
 
-				} else if (main_Info.FLAG_NEW_INFO == true){
+				elev, in_bank := bank[info_package.IPADDR]
+				if (!in_bank) {
+					c_newchannel := make(chan bool)
+					go spawnElevcheck(c_newchannel)
+
+
+					c_to_queuemanager <- NyHeis
+
+				} else if (ElevInfo.FLAG_NEW_INFO == true){
 					denDetGjelderSinKanal <- DuLever
 					c_Kømodul <- NyInfo
 
