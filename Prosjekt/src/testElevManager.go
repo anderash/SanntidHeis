@@ -11,7 +11,7 @@ import (
 
 func main() {
 	//infoPackage := make(chan []byte)
-	testMelding := elevManager.ElevInfo{"0", false, false, 2, -1, 1, 1, 1}
+	testMelding := elevManager.ElevInfo{"0", false, false, 3, -1, 1, 1, 1}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -32,7 +32,7 @@ func main() {
 				fmt.Println("error: ", json_err)
 			}
 			fmt.Printf("Fikk info på queueChan om IP %s \n", testInfo.IPADDR)
-		case <-time.After(3000 * time.Millisecond):
+		case <-time.After(200 * time.Millisecond):
 			fmt.Printf("Ingen ny queueinfo\n")
 
 		}

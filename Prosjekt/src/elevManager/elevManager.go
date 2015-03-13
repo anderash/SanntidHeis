@@ -44,7 +44,15 @@ func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
 				fmt.Println("error: ", json_err)
 			}
 
+			fmt.Printf("Info om IP %s \n", info_package.IPADDR)
 			_, in_bank := bank[info_package.IPADDR]
+			fmt.Printf("IP %s er %t i bank\n", info_package.IPADDR, in_bank)
+
+			bank[info_package.IPADDR] = info_package
+
+			for key, value := range(bank) {
+			    fmt.Println("Key:", key, "Value:", value.IPADDR, "\n")
+			}
 
 			if !in_bank {
 				c_newchannel := make(chan bool)
@@ -74,7 +82,7 @@ func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
 				// Kun fått alive-melding, send på den det gjelder sin kanal at du lever
 				elev_channels[info_package.IPADDR] <- true
 			}
-
+/*
 		for IP, channel := range elev_channels{
 			case check <- channel:
 				fmt.Printf("Checked channel %s \n", IP)
@@ -83,7 +91,7 @@ func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
 				}
 
 		}
-
+*/
 		}
 	}
 }
