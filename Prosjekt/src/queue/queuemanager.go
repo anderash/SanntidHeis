@@ -32,11 +32,11 @@ type  Elevator struct{
 	*/
 
 	ORDER_MATRIX [][]int
-	/* 			inne_i_heis    ned       opp				Settes til 1 ved en ordre
-	   1.etg	[[  0          0         0]
-	   2.etg 	 [  0          0         0]
-	   3.etg 	 [  0          0         0]
-	   4.etg	 [  0          0         0]]
+	/* 			   opp    	 ned    inne i heis				Settes til 1 ved en ordre
+	   1.etg	[[  0         0         0]
+	   2.etg 	 [  0         0         0]
+	   3.etg 	 [  0         0         0]
+	   4.etg	 [  0         0         0]]
 	   osv.
 	*/
 }
@@ -47,29 +47,32 @@ const(
 )
 
 // Indexen i map'en er ip-adressen til den aktuelle heisen
-var active_elevators = make(map[string]Elevator)
+var Active_elevators = make(map[string]Elevator)
 
+// IP-adressen til "denne" heisen
+var my_ipaddr string
 
 
 
 func InitQueuemanager(ipaddr string) {
+	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++{
 		my_ordermatrix[i] = []int{0,0,0}
 	}
-	new_elevator := Elevator{ipaddr, 0, 0, 0, my_ordermatrix} 
-	active_elevators[ipaddr] = new_elevator
-	fmt.Println("Elevator", active_elevators[ipaddr].IPADDR, "online\n")
+	new_elevator := Elevator{my_ipaddr, 0, 0, 0, my_ordermatrix} 
+	Active_elevators[my_ipaddr] = new_elevator
+	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 }
 
 
 // Denne funkjsonen brukes kun ifm debugging
 func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int){
-	temp := active_elevators[ipaddr]
+	temp := Active_elevators[ipaddr]
 	temp.POSITION = position
 	temp.DIRECTION = direction
 	temp.DESTINATION = destinasjon_pos
-	active_elevators[ipaddr] = temp
+	Active_elevators[ipaddr] = temp
 
 }
 
@@ -79,54 +82,74 @@ func AppendElevator(ipaddr string) {
 		new_ordermatrix[i] = []int{0,0,0}
 	}
 	new_elevator := Elevator{ipaddr, 0, 0, 0, new_ordermatrix}
-	active_elevators[ipaddr] = new_elevator
-	fmt.Println("Elevator", active_elevators[ipaddr].IPADDR, "online")}
+	Active_elevators[ipaddr] = new_elevator
+	fmt.Println("Elevator", Active_elevators[ipaddr].IPADDR, "online\n")}
 
 
 
 func PrintActiveElevators() {
-	for i := range(active_elevators){
-		fmt.Println("Elevator:",active_elevators[i].IPADDR)
-		fmt.Println("Position:", active_elevators[i].POSITION)
-		fmt.Println("Direction:", active_elevators[i].DIRECTION)
-		fmt.Println("Destination:", active_elevators[i].DESTINATION)
+	fmt.Printf("************************************************************\n")
+	for i := range(Active_elevators){
+		fmt.Println("Elevator:",Active_elevators[i].IPADDR, )
+		fmt.Println("Position:", Active_elevators[i].POSITION, "Direction:", Active_elevators[i].DIRECTION, "Destination:", Active_elevators[i].DESTINATION)
+		// fmt.Println("Direction:", Active_elevators[i].DIRECTION)
+		// fmt.Println("Destination:", Active_elevators[i].DESTINATION)
 		fmt.Printf("Orders:\n")
 		for floor := 0; floor < N_FLOORS; floor++ {	
-			fmt.Println("Floor", floor + 1, ":", active_elevators[i].ORDER_MATRIX[floor])
+			fmt.Println("Floor", floor + 1, ":", Active_elevators[i].ORDER_MATRIX[floor])
 		}
-		fmt.Println("\n")	
+		fmt.Printf("\n")	
 	}
+	fmt.Printf("************************************************************\n")
+	// fmt.Println("\n")
 }
 
 
 // Trenger også å distribuere alle ordrene til heisen som skal slettes til de andre heisene
 func  RemoveElevator(ipaddr string) {
-	delete(active_elevators, ipaddr)
+	delete(Active_elevators, ipaddr)
 	fmt.Println("Deleting", ipaddr, "\n")
 }
 
 // Bruker kostfunksjonen for å legge til ny ordre
 func AppendOrder(button_type int, button_floor int) {
-	if button_type == 0 {
-		button_dir := "up"
-	} else if button_type == 1 {
-		button_dir := "down"
-	} else {
+	fmt.Printf("Appending order\n")
+	var button_dir string
+	var optimal_elevatorIP string
+	// Setter først kost urimelig høyt
+	cost := 100	
 
+	if button_type == 0 {
+		button_dir = "up"
+	} else if button_type == 1 {
+		button_dir = "down"
+	} else if button_type == 2 {
+		temp_elev := Active_elevators[my_ipaddr]
+		// fmt.Println("button_floor:", button_floor, "button_type:", button_type)
+		// fmt.Println(Active_elevators[my_ipaddr].ORDER_MATRIX[button_floor])
+		temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
+		Active_elevators[my_ipaddr] = temp_elev
+		return
 	}
 
-	cost := 100
+	for ipaddr := range(Active_elevators){
+		if new_cost := CostFunction(ipaddr, button_floor, button_dir); new_cost < cost{
+			cost = new_cost
+			optimal_elevatorIP = ipaddr
+		}
+	}
 
-	for i := range(active_elevators){
-		if 
-	}	
+	// legger inn ordre i køen til den optimale heisen
+	temp_elev := Active_elevators[optimal_elevatorIP]
+	temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
+	Active_elevators[optimal_elevatorIP] = temp_elev
 }
 
 
 
 func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 	cost := 0
-	current_elevator := active_elevators[elevator_ip]
+	current_elevator := Active_elevators[elevator_ip]
 
 	//Omregner etg. nr. til posisjonsnr. (Ihht. structen Elevator)
 	order_floor_pos := order_floor * 2
