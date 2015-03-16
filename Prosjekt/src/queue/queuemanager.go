@@ -2,6 +2,7 @@ package queue
 
 import(
 	"fmt"
+	"encoding/json"
 )
 
 type  Elevator struct{
@@ -70,7 +71,7 @@ var my_ipaddr string
 
 
 
-func InitQueuemanager(ipaddr string) {
+func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++{
@@ -79,6 +80,8 @@ func InitQueuemanager(ipaddr string) {
 	new_elevator := Elevator{my_ipaddr, 0, 0, 0, my_ordermatrix} 
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
+
+	go processNewInfo(c_from_elevManager)
 }
 
 
@@ -107,7 +110,7 @@ func PrintActiveElevators() {
 	fmt.Printf("************************************************************\n")
 	for i := range(Active_elevators){
 		fmt.Println("Elevator:",Active_elevators[i].IPADDR, )
-		fmt.Println("Position:", Active_elevators[i].POSITION, "Direction:", Active_elevators[i].DIRECTION, "Destination:", Active_elevators[i].DESTINATION)
+		fmt.Println("Position:", Active_elevators[i].POSITION, "Direction:", Active_elevators[i].DIRECTION, "Destination floor:", Active_elevators[i].DESTINATION)
 		// fmt.Println("Direction:", Active_elevators[i].DIRECTION)
 		// fmt.Println("Destination:", Active_elevators[i].DESTINATION)
 		fmt.Printf("Orders:\n")
@@ -123,7 +126,7 @@ func PrintActiveElevators() {
 
 // Trenger også å distribuere alle ordrene til heisen som skal slettes til de andre heisene
 func  RemoveElevator(ipaddr string) {
-	orders_to_dist := Active_elevators[elev_info.IPADDR].ORDER_MATRIX
+	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
 	delete(Active_elevators, ipaddr)
 	for floor := 0; floor < N_FLOORS; floor++{
 		for button_type := 0; button_type < 2; button_type++{
@@ -155,12 +158,13 @@ func AppendOrder(button_type int, button_floor int) {
 	}
 
 	for ipaddr := range(Active_elevators){
+		fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
 		if new_cost := CostFunction(ipaddr, button_floor, button_dir); new_cost < cost{
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
 		}
 	}
-
+	// fmt.Println("Cost:", cost)
 	// legger inn ordre i køen til den optimale heisen
 	temp_elev := Active_elevators[optimal_elevatorIP]
 	temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
@@ -187,7 +191,8 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 	case button_dir == "up" && current_elevator.DIRECTION == 1:
 		if current_elevator.POSITION <= order_floor_pos {
-			if current_elevator.DESTINATION >= order_floor_pos {
+
+			if dest_pos >= order_floor_pos {
 				cost = order_floor_pos - current_elevator.POSITION
 			} else {
 				// + 3 sek for dør-åpen-ventetid før man kjører videre mot bestilling
@@ -202,7 +207,7 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 	case button_dir == "down" && current_elevator.DIRECTION == -1:
 		if current_elevator.POSITION >= order_floor_pos {
-			if current_elevator.DESTINATION <= order_floor_pos {
+			if dest_pos <= order_floor_pos {
 				cost = current_elevator.POSITION - order_floor_pos
 			} else {
 				cost = current_elevator.POSITION - order_floor_pos + 3
@@ -222,19 +227,33 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
 // Sender dest til tilstandsmaskin.
-func ProcessNewInfo(c_from_heisManager chan []byte, c_from_statemachine chan []byte){
+func processNewInfo(c_from_elevManager chan []byte){
+	var elev_info ElevInfo
 	for {
 		select{
-		case elev_info := <- c_from_heisManager:
+		case encoded_elev_info := <- c_from_elevManager:
+			err := json.Unmarshal(encoded_elev_info, &elev_info)
+			if err != nil{
+				fmt.Println("error: ", err)
+			}
+			if _, ok := Active_elevators[elev_info.IPADDR]; !ok {
+				AppendElevator(elev_info.IPADDR)
+			}
+			temp_elev := Active_elevators[elev_info.IPADDR]
+			temp_elev.POSITION = elev_info.POSITION
+			temp_elev.DIRECTION = elev_info.DIRECTION
+			temp_elev.DESTINATION = elev_info.DESTINATION
+			Active_elevators[elev_info.IPADDR] = temp_elev
 			if elev_info.F_DEAD_ELEV == true {
 				RemoveElevator(elev_info.IPADDR)
-			} else {
-				Active_elevators[elev_info.IPADDR].
 			}
-
-		case <- c_from_statemachine:
-
+			if elev_info.F_BUTTONPRESS == true {
+				AppendOrder(elev_info.ButtonType, elev_info.ButtonFloor)
+			}
 		}
-	}
 
+		// case <- c_from_statemachine:
+
+	}
 }
+
