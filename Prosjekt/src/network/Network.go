@@ -2,115 +2,137 @@
 package network
 
 import (
-  "fmt"
-  "net"
-  "time"
-  "os"
-  "errors"
+//	"errors"
+	"fmt"
+	. "net"
+	"os"
+	"sort"
+	"time"
+	. "strings"
+//	"bufio"
 )
 
 const (
-	OwnIP  = "129.241.187.140"
-	OwnPort  = "20001"
-	Baddr  = "129.241.187.255"
+	OwnIP         = "129.241.187.121"
+	OwnPort       = "20001"
+	Baddr         = "129.241.187.255"
 	aliveInterval = 200 * time.Millisecond
+	deadTimeout   = 1 * time.Second
 )
 
-var LocalIP string
+var localIP string
 
-func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) 
-{
-	
+func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
+	localIP = getOwnIP()
+	fmt.Printf("getOwnIP returns: %s", localIP)
 
 	go udpBroadcast(c_toNetwork)
 	go udpListen(c_fromNetwork, c_peerListUpdate)
 
-	for{
-		select{
-		case toNetwork <- c_toNetwork:
+	for {
 
-		}
 	}
-
 
 }
 
 func getOwnIP() string {
-	if LocalIP == "" {
-
+	if localIP == "" {
+		addr, _ := ResolveTCPAddr("tcp4", "google.com:80")
+		conn, _ := DialTCP("tcp4", nil, addr)
+		localIP = IPString(conn.LocalAddr())
 	}
+	return localIP
 }
 
+func IPString(addr Addr) string {
+	return Split(addr.String(), ":")[0]
+}
 
-func udpBroadcast(c_broadcast chan []byte) {
-	
-	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
+func udpBroadcast(c_toNetwork <-chan []byte) {
 
-		if err1 != nil {
-			fmt.Printf("Problemer med resolveUDPaddr")
-			os.Exit(1)
-		}
+	raddr, err1 := ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
-	socket, err2 := net.DialUDP ("udp", nil, raddr)
+	if err1 != nil {
+		fmt.Printf("Problemer med resolveUDPaddr")
+		os.Exit(1)
+	}
 
-		if err2 != nil {
-			fmt.Printf("Problemer med Dial")
-			os.Exit(2)
-		}	
+	socket, err2 := DialUDP("udp", nil, raddr)
+
+	if err2 != nil {
+		fmt.Printf("Problemer med Dial")
+		os.Exit(2)
+	}
 
 	for {
-		buffer := <- c_broadcast
-		_ , err3 := socket.Write(buffer)
+		buffer := <-c_toNetwork
+		_, err3 := socket.Write(buffer)
 		//fmt.Printf("skrev %i bytes", n)
 
 		if err3 != nil {
 			fmt.Printf("Problemer med Write")
 			os.Exit(3)
-		}		
+		}
 	}
 
 }
 
-func udpListen(c_listen chan []byte, c_NrBytes chan int, c_peerListUpdate chan <- []string){
+func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	buffer := make([]byte, 1024)
 
-	raddr, err1 := net.ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
-		
-		if err1 != nil {
-			fmt.Printf("Problemer med resolveUDPaddr")
-			os.Exit(4)
-		}
+	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
 
-	socket, _ := net.ListenUDP("udp4", raddr)
+	if err1 != nil {
+		fmt.Printf("Problemer med resolveUDPaddr")
+		os.Exit(4)
+	}
 
+	socket, _ := ListenUDP("udp4", raddr)
 
+	lastSeen := make(map[string]time.Time)
 	var listHasChanges bool
 	var peerList []string
 
-
 	for {
-		
-		nrBytes, remoteADDR, err4 := socket.ReadFromUDP(buffer)
 
-		socket.SetReadDeadline(time.Now().Add(2*aliveInterval))
+		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
+
+		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
 		listHasChanges = false
 
+		if err == nil {
+			_, inList := lastSeen[IPString(remoteADDR)]
+			if !inList {
+				listHasChanges = true
+			}
+			lastSeen[IPString(remoteADDR)] = time.Now()
+		}
 
-		if err4 != nil {
-			fmt.Printf("Problemer med ReadFromUDP")
-			os.Exit(5)
+		for key, value := range lastSeen {
+			if time.Now().Sub(value) > deadTimeout {
+				delete(lastSeen, key)
+				listHasChanges = true
+			}
+
+		}
+		if listHasChanges {
+			for key := range lastSeen {
+				peerList = append(peerList, key)
+			}
+			sort.Strings(peerList)
+			c_peerListUpdate <- peerList
 		}
 
 		//fmt.Printf(string(buffer))
-		c_listen <- buffer
-		c_NrBytes <- nrBytes
+		stripped := buffer[:nrBytes]
+		c_fromNetwork <- stripped
+		//c_NrBytes <- nrBytes
 		//time.Sleep(100*time.Millisecond)
 
 	}
 
-
 }
-
+/*
 func externalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -147,3 +169,4 @@ func externalIP() (string, error) {
 	}
 	return "", errors.New("are you connected to the network?")
 }
+*/

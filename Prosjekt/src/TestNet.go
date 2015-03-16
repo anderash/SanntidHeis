@@ -1,11 +1,30 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
+	"./network"
+	"encoding/json"
+	"runtime"
+	"time"
+	"errors"
 )
+
+type ElevInfo struct {
+	IPADDR     string
+	F_NEW_INFO bool
+
+	F_DEAD_ELEV bool
+	F_BUTTONPRESS bool	
+
+	POSITION    int
+	DIRECTION   int
+	DESTINATION int
+
+	ButtonType  int
+	ButtonFloor int
+}
 
 func main() {
 
@@ -21,8 +40,45 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(ip)
+	fmt.Printf("1. test of IP is: %s", ip)
 
+
+	c_toNetwork := make(chan []byte)
+	c_fromNetwork := make(chan []byte)
+	c_peerList := make(chan []string)
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerList)
+
+	message := ElevInfo{ip, true, false, false, 3,-1,1,0,0} 
+	var recievedMessage ElevInfo
+	//var peerlist []string
+	
+	for{
+		if (message.POSITION > 0){
+			encoded_melding, err2 := json.Marshal(message)
+			if err2 != nil {
+				fmt.Println("error: ", err2)
+			}
+			fmt.Printf("Skriver toNetwork")
+			c_toNetwork <- []byte(encoded_melding)
+			time.Sleep(1000 * time.Millisecond)
+		}
+		select{
+		case listenMessage := <-c_fromNetwork:
+			err := json.Unmarshal(listenMessage, &recievedMessage)
+			if err != nil {
+				fmt.Println("error: ", err)
+			}
+			fmt.Printf("IP: %s, floor: %d, dead: %t", recievedMessage.IPADDR, recievedMessage.POSITION, recievedMessage.F_DEAD_ELEV)
+			message.POSITION = message.POSITION - 1
+			peerlist:=  <- c_peerList
+			for i := range peerlist{
+				fmt.Printf("IP is: %s \n", peerlist[i])
+			}
+		} 
+	}
 }
 
 func externalIP() (string, error) {
@@ -61,4 +117,3 @@ func externalIP() (string, error) {
 	}
 	return "", errors.New("are you connected to the network?")
 }
-

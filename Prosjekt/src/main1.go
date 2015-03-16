@@ -42,7 +42,7 @@ func main() {
 			time.Sleep(1000 * time.Millisecond)
 		} 
 		select{
-			case listen_message := <-c_lis ,ten:
+			case listen_message := <-c_listen:
 				length := <- c_NrBytes
 				stripped := listen_message[:length]
 				err := json.Unmarshal(stripped, &recieved)
