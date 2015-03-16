@@ -4,7 +4,7 @@ package network
 import (
   "fmt"
   "net"
-  //"time"
+  "time"
   "os"
   "errors"
 )
@@ -13,9 +13,36 @@ const (
 	OwnIP  = "129.241.187.140"
 	OwnPort  = "20001"
 	Baddr  = "129.241.187.255"
+	aliveInterval = 200 * time.Millisecond
 )
 
-func UDPBroadcast(c_broadcast chan []byte) {
+var LocalIP string
+
+func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) 
+{
+	
+
+	go udpBroadcast(c_toNetwork)
+	go udpListen(c_fromNetwork, c_peerListUpdate)
+
+	for{
+		select{
+		case toNetwork <- c_toNetwork:
+
+		}
+	}
+
+
+}
+
+func getOwnIP() string {
+	if LocalIP == "" {
+
+	}
+}
+
+
+func udpBroadcast(c_broadcast chan []byte) {
 	
 	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
 
@@ -44,10 +71,10 @@ func UDPBroadcast(c_broadcast chan []byte) {
 
 }
 
-func UDPListen(c_listen chan []byte, c_NrBytes chan int){
+func udpListen(c_listen chan []byte, c_NrBytes chan int, c_peerListUpdate chan <- []string){
 	buffer := make([]byte, 1024)
 
-	raddr, err1 := net.ResolveUDPAddr("udp", Baddr+":"+OwnPort)
+	raddr, err1 := net.ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
 		
 		if err1 != nil {
 			fmt.Printf("Problemer med resolveUDPaddr")
@@ -56,17 +83,27 @@ func UDPListen(c_listen chan []byte, c_NrBytes chan int){
 
 	socket, _ := net.ListenUDP("udp4", raddr)
 
+
+	var listHasChanges bool
+	var peerList []string
+
+
 	for {
-		i, err4 := socket.Read(buffer)
+		
+		nrBytes, remoteADDR, err4 := socket.ReadFromUDP(buffer)
+
+		socket.SetReadDeadline(time.Now().Add(2*aliveInterval))
+		listHasChanges = false
+
 
 		if err4 != nil {
-			fmt.Printf("Problemer med resolveUDPaddr")
+			fmt.Printf("Problemer med ReadFromUDP")
 			os.Exit(5)
 		}
 
 		//fmt.Printf(string(buffer))
 		c_listen <- buffer
-		c_NrBytes <- i
+		c_NrBytes <- nrBytes
 		//time.Sleep(100*time.Millisecond)
 
 	}

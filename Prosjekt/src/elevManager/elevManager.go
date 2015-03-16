@@ -19,6 +19,7 @@ type ElevInfo struct {
 	F_NEW_INFO bool
 
 	F_DEAD_ELEV bool
+	F_BUTTONPRESS bool	
 
 	POSITION    int
 	DIRECTION   int
