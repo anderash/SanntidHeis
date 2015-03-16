@@ -41,6 +41,22 @@ type  Elevator struct{
 	*/
 }
 
+
+type ElevInfo struct {
+	IPADDR     string
+	F_NEW_INFO bool
+
+	F_DEAD_ELEV bool
+	F_BUTTONPRESS bool
+
+	POSITION    int
+	DIRECTION   int
+	DESTINATION int
+
+	ButtonType  int
+	ButtonFloor int
+}
+
 const(
 	N_FLOORS = 4
  	N_POSITIONS = N_FLOORS + (N_FLOORS-1)
@@ -107,8 +123,16 @@ func PrintActiveElevators() {
 
 // Trenger også å distribuere alle ordrene til heisen som skal slettes til de andre heisene
 func  RemoveElevator(ipaddr string) {
+	orders_to_dist := Active_elevators[elev_info.IPADDR].ORDER_MATRIX
 	delete(Active_elevators, ipaddr)
-	fmt.Println("Deleting", ipaddr, "\n")
+	for floor := 0; floor < N_FLOORS; floor++{
+		for button_type := 0; button_type < 2; button_type++{
+			if orders_to_dist[floor][button_type] == 1 {
+				AppendOrder(button_type, floor)
+			}
+		}
+	} 
+	fmt.Println("Deleted", ipaddr, "\n")
 }
 
 // Bruker kostfunksjonen for å legge til ny ordre
@@ -173,10 +197,8 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 			cost = dest_pos - current_elevator.POSITION + 3 + dest_pos - order_floor_pos
 		}
 
-
 	case button_dir == "up" && current_elevator.DIRECTION == -1:
 		cost = current_elevator.POSITION - dest_pos + 3 + order_floor_pos - dest_pos
-
 
 	case button_dir == "down" && current_elevator.DIRECTION == -1:
 		if current_elevator.POSITION >= order_floor_pos {
@@ -198,9 +220,21 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 }
 
 
-func ProsseserNyinfo( ){ //Tar inn kanal_fra_heis
-/*
-	Oppdaterer ny info fra de andre heisene
-*/
+// Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
+// Sender dest til tilstandsmaskin.
+func ProcessNewInfo(c_from_heisManager chan []byte, c_from_statemachine chan []byte){
+	for {
+		select{
+		case elev_info := <- c_from_heisManager:
+			if elev_info.F_DEAD_ELEV == true {
+				RemoveElevator(elev_info.IPADDR)
+			} else {
+				Active_elevators[elev_info.IPADDR].
+			}
+
+		case <- c_from_statemachine:
+
+		}
+	}
 
 }
