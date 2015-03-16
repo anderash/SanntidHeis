@@ -25,26 +25,10 @@ type ElevInfo struct {
 func main() {
 	my_ipaddr := "111.11.111"
 	other_ipaddr := "999.99.999"
+	
 	c_to_queueManager := make(chan []byte)
 
 	queue.InitQueuemanager(my_ipaddr, c_to_queueManager)
-	// queue.AppendElevator(other_ipaddr)
-
-	// position := 3
-	// direction := 1
-	// destination_pos := 3
-	// queue.SetElevator(other_ipaddr, position, direction, destination_pos)
-	
-	// queue.PrintActiveElevators()
-
-	// // button_type := 0
-	// button_floor := 2
-	// // queue.AppendOrder(button_type, button_floor)
-
-	// fmt.Println("Cost:", queue.CostFunction(my_ipaddr, button_floor, "up"))
-	// fmt.Println("Cost:", queue.CostFunction(other_ipaddr, button_floor, "up"))
-
-	// queue.PrintActiveElevators()
 
 
 	position := 3
