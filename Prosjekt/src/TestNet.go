@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
+
 	"./network"
 	"encoding/json"
 	"runtime"
@@ -28,19 +28,11 @@ type ElevInfo struct {
 
 func main() {
 
-	host, _ := os.Hostname()
-	addrs, err := net.LookupIP(host)
-	for _, addr := range addrs {
-   	 	if ipv4 := addr.To4(); ipv4 != nil {
-    	    fmt.Println("IPv4: ", ipv4)
-    	}   
-	}
-
 	ip, err := externalIP()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("1. test of IP is: %s", ip)
+	fmt.Printf("1. test of IP is: %s \n", ip)
 
 
 	c_toNetwork := make(chan []byte)
@@ -61,23 +53,32 @@ func main() {
 			if err2 != nil {
 				fmt.Println("error: ", err2)
 			}
-			fmt.Printf("Skriver toNetwork")
+			fmt.Printf("Skriver toNetwork\n")
 			c_toNetwork <- []byte(encoded_melding)
-			time.Sleep(1000 * time.Millisecond)
+			fmt.Printf("Position is now: %d\n", message.POSITION)
+			message.POSITION = message.POSITION - 1
+			//time.Sleep(1000 * time.Millisecond)
+		} else {
+			return
 		}
+		fmt.Printf("entering select statement\n")
 		select{
 		case listenMessage := <-c_fromNetwork:
-			err := json.Unmarshal(listenMessage, &recievedMessage)
-			if err != nil {
-				fmt.Println("error: ", err)
+			err1 := json.Unmarshal(listenMessage, &recievedMessage)
+			if err1 != nil {
+				fmt.Println("error1: ", err1)
 			}
-			fmt.Printf("IP: %s, floor: %d, dead: %t", recievedMessage.IPADDR, recievedMessage.POSITION, recievedMessage.F_DEAD_ELEV)
-			message.POSITION = message.POSITION - 1
-			peerlist:=  <- c_peerList
+			fmt.Printf("IP: %s, floor: %d, dead: %t \n", recievedMessage.IPADDR, recievedMessage.POSITION, recievedMessage.F_DEAD_ELEV)
+			
+		case peerlist :=  <- c_peerList:
 			for i := range peerlist{
 				fmt.Printf("IP is: %s \n", peerlist[i])
 			}
+		case <-time.After(900 * time.Millisecond):
+			fmt.Printf("Timeout! Did not get a new message\n")
 		} 
+
+
 	}
 }
 

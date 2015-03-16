@@ -16,7 +16,7 @@ const (
 	OwnIP         = "129.241.187.121"
 	OwnPort       = "20001"
 	Baddr         = "129.241.187.255"
-	aliveInterval = 200 * time.Millisecond
+	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second
 )
 
@@ -24,13 +24,13 @@ var localIP string
 
 func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	localIP = getOwnIP()
-	fmt.Printf("getOwnIP returns: %s", localIP)
-
+	fmt.Printf("getOwnIP returns: %s \n", localIP)
+	
 	go udpBroadcast(c_toNetwork)
 	go udpListen(c_fromNetwork, c_peerListUpdate)
-
+	
 	for {
-
+		
 	}
 
 }
@@ -50,22 +50,23 @@ func IPString(addr Addr) string {
 
 func udpBroadcast(c_toNetwork <-chan []byte) {
 
-	raddr, err1 := ResolveUDPAddr("udp", Baddr+":"+OwnPort)
+	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
 
 	if err1 != nil {
 		fmt.Printf("Problemer med resolveUDPaddr")
 		os.Exit(1)
 	}
-
-	socket, err2 := DialUDP("udp", nil, raddr)
+	fmt.Printf("Trying to dialUDP\n")
+	socket, err2 := DialUDP("udp4", nil, raddr)
 
 	if err2 != nil {
-		fmt.Printf("Problemer med Dial")
+		fmt.Printf("Problemer med Dial\n")
 		os.Exit(2)
 	}
 
 	for {
 		buffer := <-c_toNetwork
+		fmt.Printf("Trying to Write\n")
 		_, err3 := socket.Write(buffer)
 		//fmt.Printf("skrev %i bytes", n)
 
@@ -80,7 +81,7 @@ func udpBroadcast(c_toNetwork <-chan []byte) {
 func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	buffer := make([]byte, 1024)
 
-	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
+	raddr, err1 := ResolveUDPAddr("udp4", ":"+OwnPort)
 
 	if err1 != nil {
 		fmt.Printf("Problemer med resolveUDPaddr")
@@ -89,15 +90,17 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 
 	socket, _ := ListenUDP("udp4", raddr)
 
+
 	lastSeen := make(map[string]time.Time)
 	var listHasChanges bool
 	var peerList []string
 
 	for {
-
-		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
-
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
+		fmt.Printf("Trying to Listen\n")
+		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
+		fmt.Printf("Recieved on UDP\n")
+		
 		listHasChanges = false
 
 		if err == nil {
@@ -109,6 +112,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 		}
 
 		for key, value := range lastSeen {
+			fmt.Printf("Ip in lastSeen: %s \n", key)
 			if time.Now().Sub(value) > deadTimeout {
 				delete(lastSeen, key)
 				listHasChanges = true
@@ -120,12 +124,15 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 				peerList = append(peerList, key)
 			}
 			sort.Strings(peerList)
+			fmt.Printf("Sending on c_peerListUpdate\n")
 			c_peerListUpdate <- peerList
+			fmt.Printf("Done sending on c_peerListUpdate\n")
 		}
 
 		//fmt.Printf(string(buffer))
 		stripped := buffer[:nrBytes]
 		c_fromNetwork <- stripped
+		fmt.Printf("Sendt on c_fromNetwork\n")
 		//c_NrBytes <- nrBytes
 		//time.Sleep(100*time.Millisecond)
 
