@@ -125,8 +125,6 @@ func AppendOrder(button_type int, button_floor int) {
 		button_dir = "down"
 	} else if button_type == 2 {
 		temp_elev := Active_elevators[my_ipaddr]
-		// fmt.Println("button_floor:", button_floor, "button_type:", button_type)
-		// fmt.Println(Active_elevators[my_ipaddr].ORDER_MATRIX[button_floor])
 		temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 		Active_elevators[my_ipaddr] = temp_elev
 		return
