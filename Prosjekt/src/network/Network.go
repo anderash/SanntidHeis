@@ -49,7 +49,7 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 
 }
 
-func getOwnIP() string {
+func GetOwnIP() string {
 	if localIP == "" {
 		addr, _ := ResolveTCPAddr("tcp4", "google.com:80")
 		conn, _ := DialTCP("tcp4", nil, addr)
