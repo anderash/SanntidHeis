@@ -5,7 +5,7 @@ import(
 	"encoding/json"
 )
 
-type  Elevator struct{
+type Elevator struct{
 	IPADDR string
 	POSITION int
 	/*
@@ -82,6 +82,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
 	go processNewInfo(c_from_elevManager, c_pos_from_statemachine, c_dir_from_statemachine)
+	go checkQueue()
 }
 
 
@@ -152,7 +153,11 @@ func AppendOrder(button_type int, button_floor int) {
 		button_dir = "down"
 	} else if button_type == 2 {
 		temp_elev := Active_elevators[my_ipaddr]
-		temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
+		for i := 0; i < 3; i ++{
+			temp_elev.ORDER_MATRIX[button_floor][i] = 1
+		}
+		// temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
+
 		Active_elevators[my_ipaddr] = temp_elev
 		return
 	}
@@ -279,15 +284,69 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 }
 
 // Sjekker hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
+// Har enda ikke impementert at dest sendes på kanal til tilstandsmaskin.
 func checkQueue() {
+	var dest int
+	var pos_floor int
 	for {
+		// elev := Active_elevators[my_ipaddr]
 		switch{
+
+
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
+			pos := Active_elevators[my_ipaddr].POSITION
+			if Active_elevators[my_ipaddr].POSITION % 2 == 0 {
+				pos_floor = (pos + 2)/2 - 1
+			} else {
+				pos_floor = ((pos+1) + 2)/2 - 1
+			}
+			for i := pos_floor; i < (N_FLOORS - 1); i++ {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION  {
+					dest = i
+					fmt.Println("New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev
+				}
+			}
+
 
 		case Active_elevators[my_ipaddr].DIRECTION == -1:
+			pos := Active_elevators[my_ipaddr].POSITION
+			if Active_elevators[my_ipaddr].POSITION % 2 == 0 {
+				pos_floor = (pos + 2)/2 - 1
+			} else {
+				pos_floor = ((pos-1) + 2)/2 - 1
+			}
+			for i := pos_floor; i >= 0; i-- {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION  {
+					dest = i
+					fmt.Println("New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev
+				}
+			}
+
 
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
-
+			pos_floor = (Active_elevators[my_ipaddr].POSITION + 2)/2 - 1
+			for i := 0; i < (N_FLOORS - 1); i++ {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+					dest = i
+					fmt.Println("New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev					
+				}
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+					dest = i
+					fmt.Println("New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev					
+				}
+			}
 		}
 	}
 }

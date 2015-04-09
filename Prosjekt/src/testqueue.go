@@ -33,6 +33,7 @@ func main() {
 
 	queue.InitQueuemanager(my_ipaddr, c_to_queueManager, c_to_statemachine, c_pos_from_statemachine, c_dir_from_statemachine)
 
+	// queue.SetElevator(my_ipaddr, 6, -1, 0)
 
 	position := 3
 	direction := 1
@@ -48,8 +49,8 @@ func main() {
 	time.Sleep(10 * time.Millisecond)
 	queue.PrintActiveElevators()
 
-	button_type := 0
-	button_floor := 2
+	button_type := 2
+	button_floor := 1
 
 	elev_info = ElevInfo{other_ipaddr, true, false, true, position,direction,destination_floor,button_type,button_floor}
 	encoded_elev_info, err2 := json.Marshal(elev_info)
