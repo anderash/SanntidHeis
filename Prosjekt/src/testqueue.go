@@ -27,8 +27,11 @@ func main() {
 	other_ipaddr := "999.99.999"
 	
 	c_to_queueManager := make(chan []byte)
+	c_to_statemachine := make(chan int)
+	c_pos_from_statemachine := make(chan int)
+	c_dir_from_statemachine := make(chan int)
 
-	queue.InitQueuemanager(my_ipaddr, c_to_queueManager)
+	queue.InitQueuemanager(my_ipaddr, c_to_queueManager, c_to_statemachine, c_pos_from_statemachine, c_dir_from_statemachine)
 
 
 	position := 3

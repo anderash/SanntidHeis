@@ -33,7 +33,7 @@ type  Elevator struct{
 	*/
 
 	ORDER_MATRIX [][]int
-	/* 			   opp    	 ned    inne i heis				Settes til 1 ved en ordre
+	/* 			   opp    	 ned    inne i heis			Settes til 1 ved en ordre
 	   1.etg	[[  0         0         0]
 	   2.etg 	 [  0         0         0]
 	   3.etg 	 [  0         0         0]
@@ -71,7 +71,7 @@ var my_ipaddr string
 
 
 
-func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte) {
+func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++{
@@ -81,7 +81,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte) {
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_from_elevManager)
+	go processNewInfo(c_from_elevManager, c_pos_from_statemachine, c_dir_from_statemachine)
 }
 
 
@@ -171,6 +171,9 @@ func AppendOrder(button_type int, button_floor int) {
 	Active_elevators[optimal_elevatorIP] = temp_elev
 }
 
+func deleteOrder() {
+	
+}
 
 
 func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
@@ -226,8 +229,7 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
-// Sender dest til tilstandsmaskin.
-func processNewInfo(c_from_elevManager chan []byte){
+func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	for {
 		select{
@@ -242,18 +244,51 @@ func processNewInfo(c_from_elevManager chan []byte){
 			temp_elev := Active_elevators[elev_info.IPADDR]
 			temp_elev.POSITION = elev_info.POSITION
 			temp_elev.DIRECTION = elev_info.DIRECTION
-			temp_elev.DESTINATION = elev_info.DESTINATION
+
+			// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
+			if elev_info.IPADDR != my_ipaddr {
+				temp_elev.POSITION = elev_info.POSITION
+				temp_elev.DIRECTION = elev_info.DIRECTION
+				temp_elev.DESTINATION = elev_info.DESTINATION
+			} 
+			
 			Active_elevators[elev_info.IPADDR] = temp_elev
+
 			if elev_info.F_DEAD_ELEV == true {
 				RemoveElevator(elev_info.IPADDR)
 			}
 			if elev_info.F_BUTTONPRESS == true {
 				AppendOrder(elev_info.ButtonType, elev_info.ButtonFloor)
 			}
+
+		case pos := <- c_pos_from_statemachine:
+			temp_elev := Active_elevators[my_ipaddr]
+			temp_elev.POSITION = pos
+			Active_elevators[my_ipaddr] = temp_elev
+
+		case dir := <- c_dir_from_statemachine:
+			temp_elev := Active_elevators[my_ipaddr]
+			temp_elev.DIRECTION = dir
+			Active_elevators[my_ipaddr] = temp_elev
+
+
+
 		}
 
-		// case <- c_from_statemachine:
+	}
+}
 
+// Sjekker hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
+func checkQueue() {
+	for {
+		switch{
+		case Active_elevators[my_ipaddr].DIRECTION == 1:
+
+		case Active_elevators[my_ipaddr].DIRECTION == -1:
+
+		case Active_elevators[my_ipaddr].DIRECTION == 0:
+
+		}
 	}
 }
 
