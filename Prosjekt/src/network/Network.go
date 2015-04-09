@@ -23,7 +23,7 @@ const (
 var localIP string
 
 func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
-	localIP = getOwnIP()
+	localIP = GetOwnIP()
 	fmt.Printf("getOwnIP returns: %s \n", localIP)
 	
 	

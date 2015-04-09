@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net"
 
 	"./network"
 	"encoding/json"
 	"runtime"
 	"time"
-	"errors"
 )
 
 type ElevInfo struct {
@@ -28,7 +26,7 @@ type ElevInfo struct {
 
 func main() {
 
-	ownIP = network.GetOwnIP()
+	ownIP := network.GetOwnIP()
 
 	c_toNetwork := make(chan []byte)
 	c_fromNetwork := make(chan []byte)
@@ -80,6 +78,6 @@ func SendShit(ip string, c_toNetwork chan []byte) {
 		}
 		fmt.Printf("Skriver toNetwork\n")
 		c_toNetwork <- []byte(encoded_melding)		
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
