@@ -116,7 +116,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 		fmt.Printf("Recieved on UDP\n")
 		
 		listHasChanges = false
-
+		peerList = nil
 		if err == nil {
 			_, inList := lastSeen[IPString(remoteADDR)]
 			fmt.Println(lastSeen)
