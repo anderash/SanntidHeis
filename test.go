@@ -1,11 +1,13 @@
 package main
 
-import (
-	"fmt"
-	"math"
-)
+import "fmt"
+type Input struct{
+	SENSOR_TYPE int
+	BUTTON_TYPE int
+	FLOOR int
+}
 
 func main() {
-	fmt.Println(math.Pi)
-	fmt.Println("heihå")
+	test_struct := Input{1,2,3} 
+	fmt.Println(test_struct.SENSOR_TYPE)
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
+
 	"./network"
 	"encoding/json"
 	"runtime"
@@ -28,19 +28,11 @@ type ElevInfo struct {
 
 func main() {
 
-	host, _ := os.Hostname()
-	addrs, err := net.LookupIP(host)
-	for _, addr := range addrs {
-   	 	if ipv4 := addr.To4(); ipv4 != nil {
-    	    fmt.Println("IPv4: ", ipv4)
-    	}   
-	}
-
 	ip, err := externalIP()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("1. test of IP is: %s", ip)
+	fmt.Printf("1. test of IP is: %s \n", ip)
 
 
 	c_toNetwork := make(chan []byte)
@@ -51,33 +43,58 @@ func main() {
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerList)
 
-	message := ElevInfo{ip, true, false, false, 3,-1,1,0,0} 
+	go SendShit(ip, c_toNetwork)
+
 	var recievedMessage ElevInfo
 	//var peerlist []string
-	
+	time.Sleep(100 * time.Millisecond)
+
+		fmt.Printf("entering select statement\n")
+	for{
+		select{
+		case listenMessage := <-c_fromNetwork:
+			err1 := json.Unmarshal(listenMessage, &recievedMessage)
+			if err1 != nil {
+				fmt.Println("error1: ", err1)
+			}
+			fmt.Printf("IP: %s, floor: %d, dead: %t \n", recievedMessage.IPADDR, recievedMessage.POSITION, recievedMessage.F_DEAD_ELEV)
+			
+		case peerlist :=  <- c_peerList:
+			for i := range peerlist{
+				fmt.Printf("IP is: %s \n", peerlist[i])
+			}
+		case <-time.After(500 * time.Millisecond):
+			fmt.Printf("Timeout! Did not get a new message\n")
+			if(recievedMessage.POSITION == 1){
+				time.Sleep(1000 * time.Millisecond)
+				return
+			}
+		} 
+
+
+	}
+}
+
+func SendShit(ip string, c_toNetwork chan []byte) {
+
+	message := ElevInfo{ip, true, false, false, 5,-1,1,0,0} 
+	time.Sleep(400 * time.Millisecond)
+
 	for{
 		if (message.POSITION > 0){
 			encoded_melding, err2 := json.Marshal(message)
 			if err2 != nil {
 				fmt.Println("error: ", err2)
 			}
-			fmt.Printf("Skriver toNetwork")
+			fmt.Printf("Skriver toNetwork\n")
 			c_toNetwork <- []byte(encoded_melding)
-			time.Sleep(1000 * time.Millisecond)
-		}
-		select{
-		case listenMessage := <-c_fromNetwork:
-			err := json.Unmarshal(listenMessage, &recievedMessage)
-			if err != nil {
-				fmt.Println("error: ", err)
-			}
-			fmt.Printf("IP: %s, floor: %d, dead: %t", recievedMessage.IPADDR, recievedMessage.POSITION, recievedMessage.F_DEAD_ELEV)
+			fmt.Printf("Position is now: %d\n", message.POSITION)
 			message.POSITION = message.POSITION - 1
-			peerlist:=  <- c_peerList
-			for i := range peerlist{
-				fmt.Printf("IP is: %s \n", peerlist[i])
-			}
-		} 
+			time.Sleep(400 * time.Millisecond)
+		} else {
+			time.Sleep(2000 * time.Millisecond)
+			return
+		}
 	}
 }
 
