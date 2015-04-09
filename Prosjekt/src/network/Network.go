@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	OwnIP         = "129.241.187.121"
 	OwnPort       = "20001"
 	MsgPort		  = "20001"
 	Baddr         = "129.241.187.255"
@@ -120,6 +119,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 
 		if err == nil {
 			_, inList := lastSeen[IPString(remoteADDR)]
+			fmt.Println(lastSeen)
 			if !inList {
 				listHasChanges = true
 			}
@@ -130,6 +130,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 			fmt.Printf("Ip in lastSeen: %s \n", key)
 			if time.Now().Sub(value) > deadTimeout {
 				delete(lastSeen, key)
+				fmt.Printf("Timeout on elev %s \n", key)
 				listHasChanges = true
 			}
 
