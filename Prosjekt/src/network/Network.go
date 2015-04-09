@@ -15,6 +15,7 @@ import (
 const (
 	OwnIP         = "129.241.187.121"
 	OwnPort       = "20001"
+	MsgPort		  = "20001"
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second
@@ -26,10 +27,24 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 	localIP = getOwnIP()
 	fmt.Printf("getOwnIP returns: %s \n", localIP)
 	
-	go udpBroadcast(c_toNetwork)
-	go udpListen(c_fromNetwork, c_peerListUpdate)
 	
+
+	addr, err := ResolveUDPAddr("udp4", Baddr+":"+MsgPort)
+	if err != nil {
+		fmt.Printf("Problemer med resolveUDPaddr\n")
+		os.Exit(1)
+	}
+	msgConn, _ := DialUDP("udp4", nil, addr)
+	fmt.Printf("Created broadcast\n")
+
+	go udpListen(c_fromNetwork, c_peerListUpdate)
+	fmt.Printf("Created listenroutine\n")
+
 	for {
+		select{
+		case msg := <- c_toNetwork:
+			msgConn.Write(msg)
+		}
 		
 	}
 
@@ -89,7 +104,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	}
 
 	socket, _ := ListenUDP("udp4", raddr)
-
+	fmt.Printf("Created listenSocket\n")
 
 	lastSeen := make(map[string]time.Time)
 	var listHasChanges bool
