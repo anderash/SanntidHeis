@@ -1,9 +1,9 @@
 package elevManager
 
 import (
-	"fmt"
-	"time"
 	"encoding/json"
+	"fmt"
+	//"time"
 )
 
 /* Denne skal opprette ny goroutine for ny heis.
@@ -18,8 +18,8 @@ type ElevInfo struct {
 	IPADDR     string
 	F_NEW_INFO bool
 
-	F_DEAD_ELEV bool
-	F_BUTTONPRESS bool	
+	F_DEAD_ELEV   bool
+	F_BUTTONPRESS bool
 
 	POSITION    int
 	DIRECTION   int
@@ -29,16 +29,15 @@ type ElevInfo struct {
 	ButtonFloor int
 }
 
-func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
+func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queuemanager chan<- []byte) {
 
 	var info_package ElevInfo
 
 	bank := make(map[string]ElevInfo)
-	elev_channels := make(map[string]chan bool, 1)
 
 	for {
 		select {
-		case from_main := <- c_from_main:
+		case from_main := <-c_from_main:
 
 			json_err := json.Unmarshal(from_main, &info_package)
 			if json_err != nil {
@@ -51,52 +50,37 @@ func InitBank(c_from_main chan []byte, c_to_queuemanager chan []byte) {
 
 			bank[info_package.IPADDR] = info_package
 
-			for key, value := range(bank) {
-			    fmt.Println("Key:", key, "Value:", value.IPADDR, "\n")
+			for key, value := range bank {
+				fmt.Printf("Key: %s Position: %i Dead: %t \n", key, value.POSITION, value.F_DEAD_ELEV)
 			}
 
 			if !in_bank {
-				c_newchannel := make(chan bool)
-				go spawnElevcheck(c_newchannel, info_package.IPADDR)
-
-				elev_channels[info_package.IPADDR] = c_newchannel
-				fmt.Printf("Made new goroutine for elevator" + info_package.IPADDR + "\n")
-
-				encoded_message, err2 := json.Marshal(info_package)
-				if err2 != nil {
-					fmt.Println("error: ", err2)
-				}
-				c_to_queuemanager <- encoded_message
+				c_to_queuemanager <- from_main
 
 			} else if info_package.F_NEW_INFO {
-				fmt.Printf("New info for IP %s, its now on %d floor", info_package.IPADDR, info_package.POSITION)
-
-				elev_channels[info_package.IPADDR] <- true
-
-				encoded_message, err2 := json.Marshal(info_package)
-				if err2 != nil {
-					fmt.Println("error: ", err2)
-				}
-				c_to_queuemanager <- encoded_message
+				fmt.Printf("New info for IP %s, its now on floor %d \n", info_package.IPADDR, info_package.POSITION)
+				c_to_queuemanager <- from_main
 
 			} else {
-				// Kun fått alive-melding, send på den det gjelder sin kanal at du lever
-				elev_channels[info_package.IPADDR] <- true
+				fmt.Printf("No new info, just a alive-ping from IP %s \n", info_package.IPADDR)
 			}
-/*
-		for IP, channel := range elev_channels{
-			case check <- channel:
-				fmt.Printf("Checked channel %s \n", IP)
-				if check == false{
-					delete(bank, "IP")
-				}
 
-		}
-*/
+		case peerUpdate := <-c_peerListUpdate:
+			fmt.Printf("Recieved a dead elevator call IP: %s \n", peerUpdate)
+			tmp := bank[peerUpdate]
+			tmp.F_DEAD_ELEV = true
+			bank[peerUpdate] = tmp
+
+			encoded_message, err2 := json.Marshal(bank[peerUpdate])
+			if err2 != nil {
+				fmt.Println("JSON error: ", err2)
+			}
+			c_to_queuemanager <- encoded_message
 		}
 	}
 }
 
+/*
 func spawnElevcheck(c_mychan chan bool, my_IP string) {
 	for {
 		select {
@@ -110,3 +94,4 @@ func spawnElevcheck(c_mychan chan bool, my_IP string) {
 		}
 	}
 }
+*/
