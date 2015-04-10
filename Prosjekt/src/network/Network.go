@@ -2,19 +2,17 @@
 package network
 
 import (
-//	"errors"
 	"fmt"
 	. "net"
 	"os"
 	"sort"
-	"time"
 	. "strings"
-//	"bufio"
+	"time"
 )
 
 const (
 	OwnPort       = "20001"
-	MsgPort		  = "20001"
+	MsgPort       = "20001"
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second
@@ -24,9 +22,7 @@ var localIP string
 
 func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	localIP = GetOwnIP()
-	fmt.Printf("getOwnIP returns: %s \n", localIP)
-	
-	
+	fmt.Printf("GetOwnIP returns: %s \n", localIP)
 
 	addr, err := ResolveUDPAddr("udp4", Baddr+":"+MsgPort)
 	if err != nil {
@@ -34,17 +30,15 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 		os.Exit(1)
 	}
 	msgConn, _ := DialUDP("udp4", nil, addr)
-	fmt.Printf("Created broadcast\n")
 
 	go udpListen(c_fromNetwork, c_peerListUpdate)
-	fmt.Printf("Created listenroutine\n")
 
 	for {
-		select{
-		case msg := <- c_toNetwork:
+		select {
+		case msg := <-c_toNetwork:
 			msgConn.Write(msg)
 		}
-		
+
 	}
 
 }
@@ -62,6 +56,7 @@ func IPString(addr Addr) string {
 	return Split(addr.String(), ":")[0]
 }
 
+/*
 func udpBroadcast(c_toNetwork <-chan []byte) {
 
 	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
@@ -91,6 +86,7 @@ func udpBroadcast(c_toNetwork <-chan []byte) {
 	}
 
 }
+*/
 
 func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 	buffer := make([]byte, 1024)
@@ -111,10 +107,10 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 
 	for {
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
-		fmt.Printf("Trying to Listen\n")
+		fmt.Printf("Listening\n")
 		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
 		fmt.Printf("Recieved on UDP\n")
-		
+
 		listHasChanges = false
 		peerList = nil
 		if err == nil {
@@ -127,10 +123,10 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 		}
 
 		for key, value := range lastSeen {
-			fmt.Printf("Ip in lastSeen: %s \n", key)
 			if time.Now().Sub(value) > deadTimeout {
 				delete(lastSeen, key)
 				fmt.Printf("Timeout on elev %s \n", key)
+				c_peerListUpdate <- key
 				listHasChanges = true
 			}
 
@@ -140,21 +136,17 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
 				peerList = append(peerList, key)
 			}
 			sort.Strings(peerList)
-			fmt.Printf("Sending on c_peerListUpdate\n")
-			c_peerListUpdate <- peerList
-			fmt.Printf("Done sending on c_peerListUpdate\n")
+			//c_peerListUpdate <- peerList
 		}
 
-		//fmt.Printf(string(buffer))
 		stripped := buffer[:nrBytes]
 		c_fromNetwork <- stripped
-		fmt.Printf("Sendt on c_fromNetwork\n")
 		//c_NrBytes <- nrBytes
-		//time.Sleep(100*time.Millisecond)
 
 	}
 
 }
+
 /*
 func externalIP() (string, error) {
 	ifaces, err := net.Interfaces()
