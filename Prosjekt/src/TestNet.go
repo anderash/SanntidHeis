@@ -61,8 +61,9 @@ func main() {
 			
 		case peerlist :=  <- c_peerList:
 			for i := range peerlist{
-				fmt.Printf("IP is: %s \n", peerlist[i])
+				fmt.Printf("Dead IP is: %s \n", peerlist[i])
 			}
+			
 		case <-time.After(500 * time.Millisecond):
 			fmt.Printf("Timeout! Did not get a new message\n")
 			if(recievedMessage.POSITION == 1){

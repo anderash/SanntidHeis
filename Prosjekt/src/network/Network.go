@@ -20,7 +20,7 @@ const (
 
 var localIP string
 
-func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
+func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	localIP = GetOwnIP()
 	fmt.Printf("GetOwnIP returns: %s \n", localIP)
 
@@ -88,7 +88,7 @@ func udpBroadcast(c_toNetwork <-chan []byte) {
 }
 */
 
-func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- []string) {
+func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	buffer := make([]byte, 1024)
 
 	raddr, err1 := ResolveUDPAddr("udp4", ":"+OwnPort)

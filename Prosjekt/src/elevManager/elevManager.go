@@ -46,13 +46,8 @@ func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queu
 
 			fmt.Printf("Info om IP %s \n", info_package.IPADDR)
 			_, in_bank := bank[info_package.IPADDR]
-			fmt.Printf("IP %s er %t i bank\n", info_package.IPADDR, in_bank)
 
 			bank[info_package.IPADDR] = info_package
-
-			for key, value := range bank {
-				fmt.Printf("Key: %s Position: %i Dead: %t \n", key, value.POSITION, value.F_DEAD_ELEV)
-			}
 
 			if !in_bank {
 				c_to_queuemanager <- from_main
