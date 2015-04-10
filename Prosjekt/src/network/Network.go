@@ -109,19 +109,23 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	for {
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
 		fmt.Printf("Listening\n")
-		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
-		fmt.Printf("Recieved on UDP\n")
+		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)		
+		
 
 		listHasChanges = false
 		peerList = nil
 		if err == nil {
+			fmt.Printf("Recieved on UDP\n")
 			_, inList := lastSeen[IPString(remoteADDR)]
 			fmt.Println(lastSeen)
 			if !inList {
 				listHasChanges = true
 			}
 			lastSeen[IPString(remoteADDR)] = time.Now()
+		} else{
+			fmt.Println("Network error:", err)
 		}
+
 
 		for key, value := range lastSeen {
 			if time.Now().Sub(value) > deadTimeout {
@@ -139,11 +143,11 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			sort.Strings(peerList)
 			//c_peerListUpdate <- peerList
 		}
-
-		stripped := buffer[:nrBytes]
-		c_fromNetwork <- stripped
-		//c_NrBytes <- nrBytes
-
+		if err == nil{
+			stripped := buffer[:nrBytes]
+			c_fromNetwork <- stripped
+			//c_NrBytes <- nrBytes
+		}
 	}
 
 }
