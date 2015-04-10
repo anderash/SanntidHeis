@@ -391,7 +391,7 @@ func checkQueue(c_to_statemachine chan int) {
 
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
 			pos_floor = (Active_elevators[my_ipaddr].POSITION + 2)/2 - 1
-			for i := 0; i < (N_FLOORS - 1); i++ {
+			for i := 0; i < (N_FLOORS); i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("New destination floor: ", dest)
@@ -401,8 +401,7 @@ func checkQueue(c_to_statemachine chan int) {
 					c_to_statemachine <- dest
 					PrintActiveElevators2()
 					
-				}
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+				}else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
