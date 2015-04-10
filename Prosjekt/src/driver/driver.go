@@ -217,6 +217,8 @@ func Set_motor_direction(direction int) {
 
 
 // Funker.
+
+// Prøv å legge inn en sleep her!! Kan løse treghetsproblemet
 func Check_input(c_input chan []byte) {
 
 	for {

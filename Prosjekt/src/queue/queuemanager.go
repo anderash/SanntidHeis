@@ -142,25 +142,25 @@ func PrintActiveElevators2() {
 		for i := 0; i < 3; i++{
 			tempstr += strconv.Itoa(elev.ORDER_MATRIX[3][i]) + "     "
 		}
-		orderstr1 += "Floor: 4" + tempstr + "\t"
+		orderstr1 += "Floor: 3" + tempstr + "\t"
 
 		tempstr = "     "
 		for i := 0; i < 3; i++{
 			tempstr += strconv.Itoa(elev.ORDER_MATRIX[2][i]) + "     "
 		}
-		orderstr2 += "Floor: 3" + tempstr + "\t"
+		orderstr2 += "Floor: 2" + tempstr + "\t"
 		
 		tempstr = "     "
 		for i := 0; i < 3; i++{
 			tempstr += strconv.Itoa(elev.ORDER_MATRIX[1][i]) + "     "
 		}
-		orderstr3 += "Floor: 2" + tempstr + "\t"
+		orderstr3 += "Floor: 1" + tempstr + "\t"
 
 		tempstr = "     "
 		for i := 0; i < 3; i++{
 			tempstr += strconv.Itoa(elev.ORDER_MATRIX[0][i]) + "     "
 		}
-		orderstr4 += "Floor: 1" + tempstr + "\t"
+		orderstr4 += "Floor: 0" + tempstr + "\t"
 
 		orderstr += "Orders:     OPP   NED   INNE" + "\t"
 	}
@@ -342,9 +342,8 @@ func checkQueue() {
 	var pos_floor int
 	for {
 		// elev := Active_elevators[my_ipaddr]
+
 		switch{
-
-
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
 			pos := Active_elevators[my_ipaddr].POSITION
 			if Active_elevators[my_ipaddr].POSITION % 2 == 0 {
