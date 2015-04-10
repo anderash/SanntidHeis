@@ -42,7 +42,9 @@ func main() {
 
 	for {
 		select {
-		//case queue_info := <-c_to_statemachine:
+		case queue_info := <-c_to_statemachine:
+			fmt.Printf("Info to statemachine: ")
+			fmt.Println(queue_info)
 
 		case <-time.After(10000 * time.Millisecond):
 			return
@@ -66,7 +68,7 @@ func SendShit(c_mainchannel chan []byte, c_peerUpdate chan string) {
 		}
 
 		c_mainchannel <- encoded_message
-		fmt.Printf("Sendte melding til ip %s \n", testMelding.IPADDR)
+		fmt.Printf("Sendte %d melding til ip %s \n", i, testMelding.IPADDR)
 
 		if i == 5 {
 			time.Sleep(5 * time.Second)
@@ -79,11 +81,11 @@ func SendShit(c_mainchannel chan []byte, c_peerUpdate chan string) {
 			//testMelding.IPADDR = strconv.Itoa(i)
 			testMelding.F_NEW_INFO = true
 			testMelding.F_BUTTONPRESS = true
-		} else if i <= 3 {
-			testMelding.F_NEW_INFO = true
+		} else if i == 3 {
+			testMelding.F_NEW_INFO = false
 		} else if i == 4 {
 			testMelding.F_NEW_INFO = false
-			fmt.Printf("Kill elev 1 \n")
+			fmt.Printf("Kill elev 0 \n")
 			c_peerUpdate <- "0"
 		} else {
 			testMelding.F_NEW_INFO = false			
