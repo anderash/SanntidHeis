@@ -3,6 +3,9 @@ package queue
 import(
 	"fmt"
 	"encoding/json"
+	"os"
+	"text/tabwriter"
+	"strconv"
 )
 
 type Elevator struct{
@@ -122,6 +125,55 @@ func PrintActiveElevators() {
 	}
 	fmt.Printf("************************************************************\n")
 	// fmt.Println("\n")
+}
+
+
+func PrintActiveElevators2() {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	ipstr, infostr, orderstr, orderstr1, orderstr2, orderstr3, orderstr4 := "", "", "", "", "", "", ""
+	// infostr := ""
+	// orderstr := ""
+	for key, elev := range Active_elevators {
+		ipstr += "Elevator: " + key + "\t"
+		infostr += "Position: " + strconv.Itoa(elev.POSITION) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
+
+		tempstr := "     "
+		for i := 0; i < 3; i++{
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[3][i]) + "     "
+		}
+		orderstr1 += "Floor: 4" + tempstr + "\t"
+
+		tempstr = "     "
+		for i := 0; i < 3; i++{
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[2][i]) + "     "
+		}
+		orderstr2 += "Floor: 3" + tempstr + "\t"
+		
+		tempstr = "     "
+		for i := 0; i < 3; i++{
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[1][i]) + "     "
+		}
+		orderstr3 += "Floor: 2" + tempstr + "\t"
+
+		tempstr = "     "
+		for i := 0; i < 3; i++{
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[0][i]) + "     "
+		}
+		orderstr4 += "Floor: 1" + tempstr + "\t"
+
+		orderstr += "Orders:     OPP   NED   INNE" + "\t"
+	}
+	fmt.Fprintln(w, ipstr)
+	fmt.Fprintln(w, infostr)
+	fmt.Fprintln(w, orderstr)
+	fmt.Fprintln(w, orderstr1)
+	fmt.Fprintln(w, orderstr2)
+	fmt.Fprintln(w, orderstr3)
+	fmt.Fprintln(w, orderstr4)
+	fmt.Printf("********************************************************************************************************************\n")
+	w.Flush()
+	fmt.Printf("********************************************************************************************************************\n")
 }
 
 

@@ -47,7 +47,7 @@ func main() {
 	// time.Sleep(1000 * time.Millisecond)
 	c_to_queueManager <- encoded_elev_info
 	time.Sleep(10 * time.Millisecond)
-	queue.PrintActiveElevators()
+	queue.PrintActiveElevators2()
 
 	button_type := 2
 	button_floor := 1
@@ -60,9 +60,9 @@ func main() {
 	time.Sleep(1000 * time.Millisecond)
 	c_to_queueManager <- encoded_elev_info
 	time.Sleep(10 * time.Millisecond)
-	queue.PrintActiveElevators()
+	queue.PrintActiveElevators2()
 
-	// queue.AppendOrder(button_type, button_floor)
+	// // queue.AppendOrder(button_type, button_floor)
 
 
 }
