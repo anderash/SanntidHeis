@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	OwnPort       = "20001"
-	MsgPort       = "20001"
+	OwnPort       = "20003"
+	MsgPort       = "20003"
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second
@@ -108,16 +108,13 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 
 	for {
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
-		fmt.Printf("Listening\n")
 		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)		
 		
 
 		listHasChanges = false
 		peerList = nil
 		if err == nil {
-			fmt.Printf("Recieved on UDP\n")
 			_, inList := lastSeen[IPString(remoteADDR)]
-			fmt.Println(lastSeen)
 			if !inList {
 				listHasChanges = true
 			}

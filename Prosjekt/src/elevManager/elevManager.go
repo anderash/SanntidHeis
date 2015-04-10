@@ -57,7 +57,7 @@ func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queu
 				c_to_queuemanager <- from_main
 
 			} else {
-				fmt.Printf("No new info, just a alive-ping from IP %s \n", info_package.IPADDR)
+				fmt.Printf("Alive-ping from IP %s \n", info_package.IPADDR)
 			}
 
 		case peerUpdate := <-c_peerListUpdate:
