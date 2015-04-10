@@ -85,7 +85,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
 	go processNewInfo(c_from_elevManager, c_pos_from_statemachine, c_dir_from_statemachine)
-	go checkQueue()
+	go checkQueue(c_to_statemachine)
 }
 
 
@@ -177,7 +177,6 @@ func PrintActiveElevators2() {
 }
 
 
-// Trenger også å distribuere alle ordrene til heisen som skal slettes til de andre heisene
 func  RemoveElevator(ipaddr string) {
 	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
 	delete(Active_elevators, ipaddr)
@@ -215,7 +214,7 @@ func AppendOrder(button_type int, button_floor int) {
 	}
 
 	for ipaddr := range(Active_elevators){
-		fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
+		// fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
 		if new_cost := CostFunction(ipaddr, button_floor, button_dir); new_cost < cost{
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
@@ -342,8 +341,7 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 }
 
 // Sjekker hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
-// Har enda ikke impementert at dest sendes på kanal til tilstandsmaskin.
-func checkQueue() {
+func checkQueue(c_to_statemachine chan int) {
 	var dest int
 	var pos_floor int
 	for {
@@ -364,6 +362,7 @@ func checkQueue() {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
 					PrintActiveElevators2()
 				}
 			}
@@ -383,6 +382,7 @@ func checkQueue() {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
 					PrintActiveElevators2()
 
 				}
@@ -398,6 +398,7 @@ func checkQueue() {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
 					PrintActiveElevators2()
 					
 				}
@@ -406,7 +407,8 @@ func checkQueue() {
 					fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
-					Active_elevators[my_ipaddr] = temp_elev	
+					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
 					PrintActiveElevators2()									
 				}
 			}
