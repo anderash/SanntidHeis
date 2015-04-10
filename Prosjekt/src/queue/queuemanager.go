@@ -318,15 +318,21 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 				AppendOrder(elev_info.ButtonType, elev_info.ButtonFloor)
 			}
 
+			PrintActiveElevators2()
+
 		case pos := <- c_pos_from_statemachine:
 			temp_elev := Active_elevators[my_ipaddr]
 			temp_elev.POSITION = pos
 			Active_elevators[my_ipaddr] = temp_elev
 
+			PrintActiveElevators2()
+
 		case dir := <- c_dir_from_statemachine:
 			temp_elev := Active_elevators[my_ipaddr]
 			temp_elev.DIRECTION = dir
 			Active_elevators[my_ipaddr] = temp_elev
+
+			PrintActiveElevators2()
 
 
 
@@ -358,6 +364,7 @@ func checkQueue() {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
+					PrintActiveElevators2()
 				}
 			}
 
@@ -376,6 +383,8 @@ func checkQueue() {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
+					PrintActiveElevators2()
+
 				}
 			}
 
@@ -388,14 +397,17 @@ func checkQueue() {
 					fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
-					Active_elevators[my_ipaddr] = temp_elev					
+					Active_elevators[my_ipaddr] = temp_elev
+					PrintActiveElevators2()
+					
 				}
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
-					Active_elevators[my_ipaddr] = temp_elev					
+					Active_elevators[my_ipaddr] = temp_elev	
+					PrintActiveElevators2()									
 				}
 			}
 		}
