@@ -37,6 +37,7 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 		select {
 		case msg := <-c_toNetwork:
 			msgConn.Write(msg)
+			fmt.Printf("Sendt message \n")
 		}
 
 	}

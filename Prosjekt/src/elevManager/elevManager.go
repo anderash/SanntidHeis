@@ -41,7 +41,7 @@ func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queu
 
 			json_err := json.Unmarshal(from_main, &info_package)
 			if json_err != nil {
-				fmt.Println("error: ", json_err)
+				fmt.Println("elevMan unMarshal JSON error: ", json_err)
 			}
 
 			fmt.Printf("Info om IP %s \n", info_package.IPADDR)
@@ -68,7 +68,7 @@ func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queu
 
 			encoded_message, err2 := json.Marshal(bank[peerUpdate])
 			if err2 != nil {
-				fmt.Println("JSON error: ", err2)
+				fmt.Println("elevMan Marshal JSON error: ", err2)
 			}
 			c_to_queuemanager <- encoded_message
 		}
