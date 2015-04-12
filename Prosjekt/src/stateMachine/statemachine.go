@@ -30,6 +30,14 @@ type ThisElevator struct{
 
 var state string
 
+
+// Må på en eller annen måte sørge for at heisen går ned til 1. etg ved oppstart
+func InitStateMachine(c_dest_from_queue chan int, c_floor_from_io chan int){
+	state = "idle"
+	go stateMachine(c_dest_from_queue, c_floor_from_io)
+}
+
+
 func stateMachine(c_dest_from_queue chan int, c_floor_from_io chan int){
 
 	for{
