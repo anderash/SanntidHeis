@@ -115,7 +115,7 @@ func Initiate(c_input chan []byte, c_output chan []byte) {
 }
 
 // Funker
-func Get_floor_signal() int {
+func get_floor_signal() int {
 	if Io_read_bit(SENSOR_FLOOR1) == 1 && floor_status[0] == 0{
 		for i := 0; i < N_FLOORS; i++ {
 			floor_status[i] = 0
@@ -231,7 +231,7 @@ func Check_input(c_input chan []byte) {
 			c_input <- encoded_input
 		}
 
-		if floor := Get_floor_signal(); floor != -1 {
+		if floor := get_floor_signal(); floor != -1 {
 			input := Input{FLOOR_SENSOR, NOT_A_BUTTON, floor}
 			encoded_input, err2 := json.Marshal(input)
 			if err2 != nil{

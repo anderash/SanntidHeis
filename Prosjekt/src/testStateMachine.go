@@ -21,18 +21,19 @@ func main() {
 	c_dest_to_statemachine := make(chan int)
 	c_pos_from_statemachine := make(chan int)
 	c_dir_from_statemachine := make(chan int)
-	c_floor_from_io := make(chan int)
+	c_io_floor := make(chan int)
 	c_toNetwork := make(chan []byte)
 	c_fromNetwork := make(chan []byte)
+	c_SM_output := make(chan []byte)
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
 	go elevManager.InitBank(c_fromNetwork, c_peerUpdate, c_to_queuemanager)
 
 	queue.InitQueuemanager(my_ipaddr, c_to_queuemanager, c_dest_to_statemachine, c_pos_from_statemachine, c_dir_from_statemachine)
-	stateMachine.InitStateMachine(c_dest_to_statemachine, c_floor_from_io)
+	stateMachine.InitStateMachine(c_dest_to_statemachine, c_io_floor, c_SM_output)
 
 	go AliveRoutine(my_ipaddr, c_toNetwork)
-
+/*
 	time.Sleep(5 * time.Second)
 
 
@@ -45,7 +46,7 @@ func main() {
 	c_fromNetwork <- encoded_message
 	fmt.Printf("ORDRE SENDT\n")
 
-
+*/
 	for{
 		select{
 			case <-time.After(500 * time.Millisecond):
