@@ -109,4 +109,12 @@ func SendShit2(c_mainchannel chan []byte, c_peerUpdate chan string) {
 			fmt.Println("error: ", err4)
 		}
 	c_mainchannel <- encoded_message
+
+	time.Sleep(2 * time.Second)
+	testMelding3 := elevManager.ElevInfo{"129.241.187.09", true, false, false, 3, 0, 3, 0, 0}
+	encoded_message, err5 := json.Marshal(testMelding3)
+	if err5 != nil {
+			fmt.Println("error: ", err5)
+		}
+	c_mainchannel <- encoded_message
 }
