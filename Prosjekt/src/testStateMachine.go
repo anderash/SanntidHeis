@@ -80,13 +80,10 @@ func main() {
 
 
 func AliveRoutine(ip string, c_toNetwork chan []byte) {
-<<<<<<< HEAD
 
-	message := elevManager.ElevInfo{ip, false, false, false, 0,0,0,1,3} 
-=======
 	fmt.Printf("Started aliveroutine")
 	message := elevManager.ElevInfo{ip, false, false, false, 0,0,0,0,0} 
->>>>>>> bdfa35d03b661b75ac3398434413b5678e2bcec4
+
 	time.Sleep(500 * time.Millisecond)
 
 	for{	
