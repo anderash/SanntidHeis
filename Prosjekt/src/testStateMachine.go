@@ -59,14 +59,18 @@ func main() {
 				fmt.Println("error: ", err)
 			}
 			fmt.Println("Input:", decoded_input.INPUT_TYPE, "Button type:", decoded_input.BUTTON_TYPE, "Floor:", decoded_input.FLOOR)
-			
-			testMelding := elevManager.ElevInfo{my_ipaddr, true, false, true, 0, 0, 0, decoded_input.BUTTON_TYPE, decoded_input.FLOOR}
-			encoded_message, err := json.Marshal(testMelding)
-			if err != nil {
-				fmt.Println("error: ", err)
+			if decoded_input.INPUT_TYPE == driver.FLOOR_SENSOR {
+
+			} else {
+				testMelding := elevManager.ElevInfo{my_ipaddr, true, false, true, 0, 0, 0, decoded_input.BUTTON_TYPE, decoded_input.FLOOR}
+				encoded_message, err := json.Marshal(testMelding)
+				if err != nil {
+					fmt.Println("error: ", err)
+				}
+				c_fromNetwork <- encoded_message
+				fmt.Printf("ORDRE SENDT\n")
 			}
-			c_fromNetwork <- encoded_message
-			fmt.Printf("ORDRE SENDT\n")
+
 
 		case <-time.After(500 * time.Millisecond):
 				

@@ -112,8 +112,8 @@ init:
 
 func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte) {
 
-//	goUp := Output{1, -1, -1, -1, -1, 1}
-//	goDown := Output{1, -1, -1, -1, -1, -1}
+	goUp := Output{1, -1, -1, -1, -1, 1}
+	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
 
 	openDoor := Output{0, 2, -1, -1, 1, -1}
@@ -145,12 +145,27 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				if dest_pos > position {
 					direction = 1
 					state = "move"
+					encoded_output, err := json.Marshal(goUp)
+					if err != nil {
+						fmt.Println("SM JSON error: ", err)
+					}
+					c_SM_output <- encoded_output
 				} else if dest_pos < position {
 					direction = -1
 					state = "move"
+					encoded_output, err := json.Marshal(goDown)
+					if err != nil {
+						fmt.Println("SM JSON error: ", err)
+					}
+					c_SM_output <- encoded_output
 				} else {
 					direction = 0
 					state = "at_floor"
+					encoded_output, err := json.Marshal(stopMotor)
+					if err != nil {
+						fmt.Println("SM JSON error: ", err)
+					}
+					c_SM_output <- encoded_output
 				}
 
 			}
