@@ -69,9 +69,10 @@ type Output struct{
 func main() {
 	c_input := make(chan []byte)
 	c_output := make(chan []byte)
+	c_io_floor := make(chan int)
 	var decoded_input Input
 
-	driver.Initiate(c_input, c_output)
+	driver.InitDriver(c_input, c_output, c_io_floor)
 
 	for {
 		select{
@@ -106,6 +107,8 @@ func main() {
 				}
 				c_output <- encoded_output				
 			}
+		case floor := <- c_io_floor:
+			fmt.Println(floor)
 			
 		}
 	}
