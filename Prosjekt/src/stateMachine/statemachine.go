@@ -1,32 +1,34 @@
 package stateMachine
 
+import (
+	"fmt"
+)
 
-type ThisElevator struct{
-	POSITION int
-	/*
-	   Etg.			Pos. nr.
-	    1 ............ 0
-	  	  ............ 1
-		2 ............ 2
-		  ............ 3
-		3 ............ 4
-		  ............ 5
-		4 ............ 6
-	*/
 
-	DIRECTION int
-	/*
-		opp = 1, ned = -1, stillestående = 0 
-	*/
+ var position int
+/*
+   Etg.			Pos. nr.
+    1 ............ 0
+  	  ............ 1
+	2 ............ 2
+	  ............ 3
+	3 ............ 4
+	  ............ 5
+	4 ............ 6
+*/
 
-	DESTINATION int
-	/*
-		1. etg = 0
-		2. etg = 1
-		3. etg = 2
-		4. etg = 3
-	*/
-}
+var direction int
+/*
+	opp = 1, ned = -1, stillestående = 0 
+*/
+
+var destination int
+/*
+	1. etg = 0
+	2. etg = 1
+	3. etg = 2
+	4. etg = 3
+*/
 
 var state string
 
@@ -42,9 +44,22 @@ func stateMachine(c_dest_from_queue chan int, c_floor_from_io chan int){
 
 	for{
 		select{
-		case input := <- c_dest_from_queue:
+		case dest := <- c_dest_from_queue:
+			destination = dest
+			dest_pos = destination*2 - 2 
+
 			switch{
 			case state == "idle":
+				if dest_pos > position {
+					direction = 1
+					state = "move"
+				} else if dest_pos < position {
+					direction = -1
+					state = "move"
+				} else {
+					direction = 0
+					state = "at_floor"
+				}
 
 			case state == "move":
 
@@ -52,6 +67,7 @@ func stateMachine(c_dest_from_queue chan int, c_floor_from_io chan int){
 			}
 
 		case input := <- c_floor_from_io:
+			fmt.Println(input)
 			switch{
 			case state == "idle":
 

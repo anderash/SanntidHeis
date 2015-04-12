@@ -6,6 +6,7 @@ import(
 	"os"
 	"text/tabwriter"
 	"strconv"
+	"time"
 )
 
 type Elevator struct{
@@ -363,6 +364,8 @@ func checkQueue(c_to_statemachine chan int) {
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
+					time.Sleep(10 * time.Millisecond)
+
 					PrintActiveElevators2()
 				}
 			}
@@ -378,11 +381,12 @@ func checkQueue(c_to_statemachine chan int) {
 			for i := pos_floor; i >= 0; i-- {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION  {
 					dest = i
-					fmt.Println("New destination floor: ", dest)
+					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
+					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
 
 				}
@@ -394,20 +398,22 @@ func checkQueue(c_to_statemachine chan int) {
 			for i := 0; i < (N_FLOORS); i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					fmt.Println("New destination floor: ", dest)
+					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
+					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
 					
 				}else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					fmt.Println("New destination floor: ", dest)
+					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
+					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()									
 				}
 			}
