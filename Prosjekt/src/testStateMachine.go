@@ -58,7 +58,7 @@ func main() {
 
 func AliveRoutine(ip string, c_toNetwork chan []byte) {
 
-	message := elevManager.ElevInfo{ip, false, false, false, 0,0,0,0,0} 
+	message := elevManager.ElevInfo{ip, false, false, false, 0,0,0,1,3} 
 	time.Sleep(500 * time.Millisecond)
 
 	for{	

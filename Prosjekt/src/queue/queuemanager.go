@@ -216,9 +216,17 @@ func AppendOrder(button_type int, button_floor int) {
 
 	for ipaddr := range(Active_elevators){
 		// fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
-		if new_cost := CostFunction(ipaddr, button_floor, button_dir); new_cost < cost{
+		new_cost := CostFunction(ipaddr, button_floor, button_dir)
+		if new_cost < cost{
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
+		} else if new_cost == cost {
+			old_ip_num, _ := strconv.Atoi(optimal_elevatorIP[12:len(optimal_elevatorIP)])
+			new_ip_num, _ := strconv.Atoi(ipaddr[12:len(ipaddr)])
+
+			if new_ip_num < old_ip_num {
+				optimal_elevatorIP = ipaddr
+			}
 		}
 	}
 	// fmt.Println("Cost:", cost)

@@ -30,15 +30,15 @@ func main() {
 
 	me := elevManager.ElevInfo{ipaddr, false, false, false, 0, 0, 0, 0, 0}
 	time.Sleep(50 * time.Millisecond)
-	encoded_message, err2 := json.Marshal(me)
-	if err2 != nil {
-		fmt.Println("error: ", err2)
+	encoded_message, err := json.Marshal(me)
+	if err != nil {
+		fmt.Println("error: ", err)
 	}
 
 	c_mainchannel <- encoded_message
 	fmt.Printf("Sendt myself to elevBank \n")
 
-	go SendShit(c_mainchannel, c_peerUpdate)
+	go SendShit2(c_mainchannel, c_peerUpdate)
 
 	for {
 		select {
@@ -57,7 +57,7 @@ func main() {
 func SendShit(c_mainchannel chan []byte, c_peerUpdate chan string) {
 
 	time.Sleep(2 * time.Second)
-	testMelding := elevManager.ElevInfo{"0", false, false, false, 2, 0, 2, 1, 3}
+	testMelding := elevManager.ElevInfo{"0", false, false, false, 0, 0, 0, 1, 3}
 	i := 0
 
 	for {
@@ -91,5 +91,22 @@ func SendShit(c_mainchannel chan []byte, c_peerUpdate chan string) {
 			testMelding.F_NEW_INFO = false			
 		}
 	}
+}
 
+func SendShit2(c_mainchannel chan []byte, c_peerUpdate chan string) {
+	time.Sleep(2 * time.Second)
+	testMelding := elevManager.ElevInfo{"129.241.187.09", true, false, false, 0, 0, 0, 0, 0}
+	encoded_message, err3 := json.Marshal(testMelding)
+	if err3 != nil {
+			fmt.Println("error: ", err3)
+		}
+	c_mainchannel <- encoded_message
+
+	time.Sleep(2 * time.Second)
+	testMelding2 := elevManager.ElevInfo{"129.241.187.124", true, false, true, 0, 0, 0, 1, 3}
+	encoded_message, err4 := json.Marshal(testMelding2)
+	if err4 != nil {
+			fmt.Println("error: ", err4)
+		}
+	c_mainchannel <- encoded_message
 }
