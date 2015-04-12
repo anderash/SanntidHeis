@@ -10,6 +10,7 @@ import "C"
 import (
 	"fmt"
 	"encoding/json"
+	"time"
 )
 
 type Input struct{
@@ -87,7 +88,7 @@ var button_status = [N_FLOORS][3]int{
 var floor_status = [N_FLOORS]int{0,0,0,0}
 
 
-func Initiate(c_input chan []byte, c_output chan []byte) {
+func InitDriver(c_input chan []byte, c_output chan []byte, c_io_floor chan int) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -108,7 +109,7 @@ func Initiate(c_input chan []byte, c_output chan []byte) {
 	Set_motor_direction(0)
 
 
-	go Check_input(c_input)
+	go Check_input(c_input, c_io_floor)
 	go Send_output(c_output)
 
 	fmt.Printf("Initiated!\n")
@@ -219,7 +220,7 @@ func Set_motor_direction(direction int) {
 // Funker.
 
 // Prøv å legge inn en sleep her!! Kan løse treghetsproblemet
-func Check_input(c_input chan []byte) {
+func Check_input(c_input chan []byte, c_io_floor chan int) {
 
 	for {
 		if floor, button_type := Get_button_signal(); floor != -1 {
@@ -233,12 +234,14 @@ func Check_input(c_input chan []byte) {
 
 		if floor := get_floor_signal(); floor != -1 {
 			input := Input{FLOOR_SENSOR, NOT_A_BUTTON, floor}
+			c_io_floor <- floor
 			encoded_input, err2 := json.Marshal(input)
 			if err2 != nil{
 				fmt.Println("error: ", err2)
 			}
 			c_input <- encoded_input
 		} 
+		time.Sleep(10*time.Millisecond)
 	}
 }
 
