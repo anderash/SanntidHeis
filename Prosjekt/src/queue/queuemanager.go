@@ -216,9 +216,17 @@ func AppendOrder(button_type int, button_floor int) {
 
 	for ipaddr := range(Active_elevators){
 		// fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
-		if new_cost := CostFunction(ipaddr, button_floor, button_dir); new_cost < cost{
+		new_cost := CostFunction(ipaddr, button_floor, button_dir)
+		if new_cost < cost{
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
+		} else if new_cost == cost {
+			old_ip_num, _ := strconv.Atoi(optimal_elevatorIP[12:len(optimal_elevatorIP)])
+			new_ip_num, _ := strconv.Atoi(ipaddr[12:len(ipaddr)])
+
+			if new_ip_num < old_ip_num {
+				optimal_elevatorIP = ipaddr
+			}
 		}
 	}
 	// fmt.Println("Cost:", cost)
@@ -228,7 +236,12 @@ func AppendOrder(button_type int, button_floor int) {
 	Active_elevators[optimal_elevatorIP] = temp_elev
 }
 
-func deleteOrder() {
+func deleteOrder(ipaddr string, floor int) {
+	temp_elev := Active_elevators[ipaddr]
+	for i := 0; i < 3; i++{
+		temp_elev.ORDER_MATRIX[floor][i] = 0
+	}
+	Active_elevators[ipaddr] = temp_elev
 	
 }
 
@@ -286,6 +299,7 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
+// Må teste om deleteOrder() funker
 func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	for {
@@ -314,6 +328,9 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 			if elev_info.F_DEAD_ELEV == true {
 				RemoveElevator(elev_info.IPADDR)
 			}
+			if (elev_info.POSITION+2)/2 -1 == elev_info.DESTINATION {
+				deleteOrder(elev_info.IPADDR, (elev_info.POSITION+2)/2 -1)
+			}
 			if elev_info.F_BUTTONPRESS == true {
 				AppendOrder(elev_info.ButtonType, elev_info.ButtonFloor)
 			}
@@ -324,6 +341,10 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 			temp_elev := Active_elevators[my_ipaddr]
 			temp_elev.POSITION = pos
 			Active_elevators[my_ipaddr] = temp_elev
+
+			if (pos+2)/2 -1 == Active_elevators[my_ipaddr].DESTINATION {
+				deleteOrder(my_ipaddr, (pos+2)/2 -1)
+			}
 
 			PrintActiveElevators2()
 
