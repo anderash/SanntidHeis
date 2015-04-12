@@ -77,17 +77,26 @@ var state string
 func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte) {
 
 	run := false
+	goDown := Output{1, -1, -1, -1, -1, -1}
+	stopMotor := Output{1, -1, -1, -1, -1, 0}
 init:
 	for {
 		select {
 		case floorInput := <-c_io_floor:
 			if floorInput == 0 {
 				state = "idle"
+				fmt.Printf("Arrived at floor 0, stopping motor")
+				encoded_output, err := json.Marshal(stopMotor)
+				if err != nil {
+					fmt.Println("init JSON error: ", err)
+				}
+				c_SM_output <- encoded_output
 				break init
 			}
 		case <-time.After(100 * time.Millisecond):
 			if !run {
-				goDown := Output{1, -1, -1, -1, -1, -1}
+				fmt.Printf("Starting elevator")
+				
 				encoded_output, err := json.Marshal(goDown)
 				if err != nil {
 					fmt.Println("init JSON error: ", err)
