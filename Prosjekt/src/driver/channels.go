@@ -74,6 +74,7 @@ const(
     //light types
     BUTTON_LAMP = 0
 	FLOOR_INDICATOR = 1
+	DOOR_LAMP = 2
 
 	//output direction
 	UP = 1

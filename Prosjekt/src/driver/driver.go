@@ -41,6 +41,7 @@ type Output struct{
 	/*
 	BUTTON_LAMP = 0
 	FLOOR_INDICATOR = 1
+	DOOR_LAMP = 2
 	*/
 
 	BUTTON_TYPE int
@@ -259,7 +260,12 @@ func Send_output(c_output chan []byte) {
 
 			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
 				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
-					Set_floor_indicator(decoded_output.FLOOR)
+					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR{
+						Set_floor_indicator(decoded_output.FLOOR)
+					}else if decoded_output.LIGHT_TYPE == DOOR_LAMP{
+						Set_door_open_lamp(decoded_output.VALUE)
+					}
+					
 				} else{
 					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
 				}
