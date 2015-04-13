@@ -368,7 +368,7 @@ func checkQueue(c_to_statemachine chan int) {
 	var pos_floor int
 	for {
 		// elev := Active_elevators[my_ipaddr]
-
+		time.Sleep(10 * time.Millisecond)
 		switch{
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
 			pos := Active_elevators[my_ipaddr].POSITION

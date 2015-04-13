@@ -76,7 +76,7 @@ func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
 
-	floorInput := <- c_io_floor
+	floorInput = <- c_io_floor
 	if floorInput != 0 {
 		encoded_output, err := json.Marshal(goDown)
 		if err != nil {
@@ -87,14 +87,12 @@ func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 
 
 	for {
-		floorInput := <- c_io_floor
+		floorInput = <- c_io_floor
 		fmt.Println("FLOOR SENSOR SIGNAL:", floorInput)
 		if floorInput == 0 {
 			break
 		}
 	}
-
-fmt.Println("test")
 
 	encoded_output, err := json.Marshal(stopMotor)
 	if err != nil {
@@ -174,7 +172,7 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 						fmt.Println("SM JSON error: ", err)
 					}
 					c_SM_output <- encoded_output
-				} else if destination < position {
+				} else if destination < floorInput {
 					direction = -1
 					state = "move"
 					encoded_output, err := json.Marshal(goDown)

@@ -145,6 +145,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			c_fromNetwork <- stripped
 			//c_NrBytes <- nrBytes
 		}
+		time.Sleep(10*time.Millisecond)
 	}
 
 }
