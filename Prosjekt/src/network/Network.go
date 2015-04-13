@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	OwnPort       = "20012"
-	MsgPort       = "20012"
+	OwnPort       = "20013"
+	MsgPort       = "20013"
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second

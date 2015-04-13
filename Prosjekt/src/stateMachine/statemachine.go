@@ -43,17 +43,13 @@ type Output struct {
 	*/
 }
 
-var position int
+var floorInput int
 
-/*
-   Etg.			Pos. nr.
-    1 ............ 0
-  	  ............ 1
-	2 ............ 2
-	  ............ 3
-	3 ............ 4
-	  ............ 5
-	4 ............ 6
+/*		
+0
+1
+2
+3
 */
 
 var direction int
@@ -76,36 +72,65 @@ var state string
 // Må på en eller annen måte sørge for at heisen går ned til 1. etg ved oppstart
 func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte) {
 
-	run := false
+	// run := false
 	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
-init:
-	for {
-		select {
-		case floorInput := <-c_io_floor:
-			if floorInput == 0 {
-				state = "idle"
-				fmt.Printf("Arrived at floor 0, stopping motor")
-				encoded_output, err := json.Marshal(stopMotor)
-				if err != nil {
-					fmt.Println("init JSON error: ", err)
-				}
-				c_SM_output <- encoded_output
-				break init
-			}
-		case <-time.After(100 * time.Millisecond):
-			if !run {
-				fmt.Printf("Starting elevator")
 
-				encoded_output, err := json.Marshal(goDown)
-				if err != nil {
-					fmt.Println("init JSON error: ", err)
-				}
-				c_SM_output <- encoded_output
-				run = true
-			}
+	floorInput := <- c_io_floor
+	if floorInput != 0 {
+		encoded_output, err := json.Marshal(goDown)
+		if err != nil {
+			fmt.Println("init JSON error: ", err)
+		}
+		c_SM_output <- encoded_output
+	}
+
+
+	for {
+		floorInput := <- c_io_floor
+		fmt.Println("FLOOR SENSOR SIGNAL:", floorInput)
+		if floorInput == 0 {
+			break
 		}
 	}
+
+fmt.Println("test")
+
+	encoded_output, err := json.Marshal(stopMotor)
+	if err != nil {
+		fmt.Println("init JSON error: ", err)
+	}
+	c_SM_output <- encoded_output
+
+
+// init:
+// 	for {
+// 		select {
+// 		case floorInput := <-c_io_floor:
+// 			fmt.Printf("FLOOR SENSIR SIGNAL\n")
+// 			if floorInput == 0 {
+// 				state = "idle"
+// 				fmt.Printf("Arrived at floor 0, stopping motor\n")
+// 				encoded_output, err := json.Marshal(stopMotor)
+// 				if err != nil {
+// 					fmt.Println("init JSON error: ", err)
+// 				}
+// 				c_SM_output <- encoded_output
+// 				break init
+// 			}
+// 		case <-time.After(100 * time.Millisecond):
+// 			if !run {
+// 				fmt.Printf("Starting elevator\n")
+
+// 				encoded_output, err := json.Marshal(goDown)
+// 				if err != nil {
+// 					fmt.Println("init JSON error: ", err)
+// 				}
+// 				c_SM_output <- encoded_output
+// 				run = true
+// 			}
+// 		}
+// 	}
 
 	go stateMachine(c_queMan_destination, c_io_floor, c_SM_output)
 }
@@ -123,9 +148,8 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 	for {
 		select {
-		case dest := <-c_queMan_destination:
-			destination = dest
-			dest_pos := destination*2 - 2
+		case destination = <-c_queMan_destination:
+			
 
 			switch {
 
@@ -142,7 +166,7 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				fallthrough
 
 			case state == "idle":
-				if dest_pos > position {
+				if destination > floorInput {
 					direction = 1
 					state = "move"
 					encoded_output, err := json.Marshal(goUp)
@@ -150,7 +174,7 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 						fmt.Println("SM JSON error: ", err)
 					}
 					c_SM_output <- encoded_output
-				} else if dest_pos < position {
+				} else if destination < position {
 					direction = -1
 					state = "move"
 					encoded_output, err := json.Marshal(goDown)

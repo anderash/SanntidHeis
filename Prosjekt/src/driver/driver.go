@@ -89,7 +89,7 @@ var button_status = [N_FLOORS][3]int{
 var floor_status = [N_FLOORS]int{0,0,0,0}
 
 
-func InitDriver(c_input chan []byte, c_output chan []byte, c_io_floor chan int) {
+func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_outputs chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -110,41 +110,28 @@ func InitDriver(c_input chan []byte, c_output chan []byte, c_io_floor chan int) 
 	Set_motor_direction(0)
 
 
-	go Check_input(c_input, c_io_floor)
-	go Send_output(c_output)
+	go Check_floor(c_floorEvents)
+	go Check_buttons(c_buttonEvents)
+	go Send_output(c_outputs)
 
 	fmt.Printf("Initiated!\n")
 }
 
 // Funker
 func get_floor_signal() int {
-	if Io_read_bit(SENSOR_FLOOR1) == 1 && floor_status[0] == 0{
-		for i := 0; i < N_FLOORS; i++ {
-			floor_status[i] = 0
-		}
-		floor_status[0] = 1
+	if Io_read_bit(SENSOR_FLOOR1) == 1 {
 		return 0
-	} else if Io_read_bit(SENSOR_FLOOR2) == 1 && floor_status[1] == 0{
-		for i := 0; i < N_FLOORS; i++ {
-			floor_status[i] = 0
-		}
-		floor_status[1] = 1
-		return 1
-	} else if Io_read_bit(SENSOR_FLOOR3) == 1 && floor_status[2] == 0{
-		for i := 0; i < N_FLOORS; i++ {
-			floor_status[i] = 0
-		}
-		floor_status[2] = 1
-		return 2
-	} else if Io_read_bit(SENSOR_FLOOR4) == 1 && floor_status[3] == 0{
-		for i := 0; i < N_FLOORS; i++ {
-			floor_status[i] = 0
-		}	
-		floor_status[3] = 1
-		return 3
-	} else {
-		return -1
 	}
+	if Io_read_bit(SENSOR_FLOOR2) == 1 {
+		return 1
+	}
+	if Io_read_bit(SENSOR_FLOOR3) == 1 {
+		return 2
+	}
+	if Io_read_bit(SENSOR_FLOOR4) == 1 {
+		return 3
+	}
+	return -1
 }
 
 // Denne vil ikke få med seg knappetrykk dersom noen holder en knapp inne i en lavere etg. Må fikses!
@@ -219,9 +206,7 @@ func Set_motor_direction(direction int) {
 
 
 // Funker.
-
-// Prøv å legge inn en sleep her!! Kan løse treghetsproblemet
-func Check_input(c_input chan []byte, c_io_floor chan int) {
+func Check_buttons(c_input chan []byte) {
 
 	for {
 		if floor, button_type := Get_button_signal(); floor != -1 {
@@ -233,15 +218,25 @@ func Check_input(c_input chan []byte, c_io_floor chan int) {
 			c_input <- encoded_input
 		}
 
-		if floor := get_floor_signal(); floor != -1 {
-			input := Input{FLOOR_SENSOR, NOT_A_BUTTON, floor}
+		time.Sleep(10*time.Millisecond)
+	}
+}
+
+
+func Check_floor(c_io_floor chan int) {
+	floor := get_floor_signal()
+	prevFloor := -1
+
+	c_io_floor <- floor
+
+	for {
+		floor = get_floor_signal()
+		if floor != prevFloor  &&  floor != -1 {
 			c_io_floor <- floor
-			encoded_input, err2 := json.Marshal(input)
-			if err2 != nil{
-				fmt.Println("error: ", err2)
-			}
-			c_input <- encoded_input
-		} 
+		}
+		prevFloor = floor
+
+
 		time.Sleep(10*time.Millisecond)
 	}
 }

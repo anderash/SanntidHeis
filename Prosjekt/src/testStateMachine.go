@@ -26,7 +26,7 @@ func main() {
 	c_toNetwork := make(chan []byte)
 	c_fromNetwork := make(chan []byte)
 	c_SM_output := make(chan []byte)
-	c_io_input := make (chan []byte)
+	c_buttonEvents := make (chan []byte)
 
 
 	go elevManager.InitBank(c_fromNetwork, c_peerUpdate, c_to_queuemanager)
@@ -34,7 +34,7 @@ func main() {
 	queue.InitQueuemanager(my_ipaddr, c_to_queuemanager, c_dest_to_statemachine, c_pos_from_statemachine, c_dir_from_statemachine)
 	
 	
-	driver.InitDriver(c_io_input, c_SM_output, c_io_floor)
+	driver.InitDriver(c_buttonEvents, c_io_floor, c_SM_output)
 
 
 	stateMachine.InitStateMachine(c_dest_to_statemachine, c_io_floor, c_SM_output)
@@ -50,10 +50,11 @@ func main() {
 
 	
 */
+
 	var decoded_input driver.Input
 	for{
 		select{
-		case ioInput := <- c_io_input:
+		case ioInput := <- c_buttonEvents:
 			err := json.Unmarshal(ioInput, &decoded_input)
 			if err != nil{
 				fmt.Println("error: ", err)
@@ -70,6 +71,7 @@ func main() {
 				c_fromNetwork <- encoded_message
 				fmt.Printf("ORDRE SENDT\n")
 			}
+
 
 
 		case <-time.After(500 * time.Millisecond):
