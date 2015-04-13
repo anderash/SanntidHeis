@@ -362,7 +362,7 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 	}
 }
 
-// Sjekker hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
+// Sjekker (ikke lenger hele tiden, men hvert 10 ms) hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
 func checkQueue(c_to_statemachine chan int) {
 	var dest int
 	var pos_floor int

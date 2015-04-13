@@ -142,6 +142,8 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 	openDoor := Output{0, 2, -1, -1, 1, -1}
 	closeDoor := Output{0, 2, -1, -1, 0, -1}
 
+	lightButton := Output{0, 0, -1, -1, 1, 0}
+
 	doorTimer := time.NewTimer(3 * time.Second)
 
 	for {
