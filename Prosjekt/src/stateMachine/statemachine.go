@@ -151,11 +151,11 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case destination = <-c_queMan_destination:
 			
 
-			switch {
+			switch state{
 
-			case state == "move":
+			case "move":
 
-			case state == "at_floor":
+			case "at_floor":
 				<-doorTimer.C
 				encoded_output, err := json.Marshal(closeDoor)
 				if err != nil {
@@ -165,15 +165,17 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				state = "idle"
 				fallthrough
 
-			case state == "idle":
+			case "idle":
 				if destination > floorInput {
 					direction = 1
 					state = "move"
+
 					encoded_output, err := json.Marshal(goUp)
 					if err != nil {
 						fmt.Println("SM JSON error: ", err)
 					}
 					c_SM_output <- encoded_output
+
 				} else if destination < floorInput {
 					direction = -1
 					state = "move"
@@ -196,10 +198,10 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 		case floorInput := <-c_io_floor:
 			fmt.Println(floorInput)
-			switch {
-			case state == "idle":
+			switch state{
+			case "idle":
 
-			case state == "move":
+			case "move":
 				if floorInput == destination {
 					encoded_output, err := json.Marshal(stopMotor)
 					if err != nil {
@@ -225,13 +227,18 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case <-doorTimer.C:
 			switch state{
 			case "at_floor":
-				encoded_output, err := json.Marshal(closeDoor)
-				if err != nil {
-					fmt.Println("SM JSON error: ", err)
-				}
-				c_SM_output <- encoded_output
+				sendOutput(closeDoor, c_SM_output)
+				state = "idle"
 			}
 
 		}
 	}
+}
+
+func sendOutput(output Output, c_SM_output chan []byte) {
+	encoded_output, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println("SM JSON error: ", err)
+	}
+	c_SM_output <- encoded_output	
 }
