@@ -75,7 +75,7 @@ var my_ipaddr string
 
 
 
-func InitQueuemanager(ipaddr string, c_elevMan_info chan []byte, c_queMan_dest chan int, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int) {
+func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++{
@@ -85,8 +85,8 @@ func InitQueuemanager(ipaddr string, c_elevMan_info chan []byte, c_queMan_dest c
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_elevMan_info, c_pos_from_statemachine, c_dir_from_statemachine)
-	go checkQueue(c_queMan_dest)
+	go processNewInfo(c_from_elevManager, c_pos_from_statemachine, c_dir_from_statemachine)
+	go checkQueue(c_to_statemachine)
 }
 
 
@@ -300,11 +300,11 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
 // Må teste om deleteOrder() funker
-func processNewInfo(c_elevMan_info chan []byte, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
+func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	for {
 		select{
-		case encoded_elev_info := <- c_elevMan_info:
+		case encoded_elev_info := <- c_from_elevManager:
 			err := json.Unmarshal(encoded_elev_info, &elev_info)
 			if err != nil{
 				fmt.Println("error: ", err)
@@ -363,7 +363,7 @@ func processNewInfo(c_elevMan_info chan []byte, c_pos_from_statemachine chan int
 }
 
 // Sjekker (ikke lenger hele tiden, men hvert 10 ms) hele tiden køen, oppdaterer next destination og sender denne til tilstandsmaskin.
-func checkQueue(c_queMan_dest chan int) {
+func checkQueue(c_to_statemachine chan int) {
 	var dest int
 	var pos_floor int
 	for {
@@ -384,7 +384,7 @@ func checkQueue(c_queMan_dest chan int) {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_queMan_dest <- dest
+					c_to_statemachine <- dest
 					time.Sleep(10 * time.Millisecond)
 
 					PrintActiveElevators2()
@@ -406,7 +406,7 @@ func checkQueue(c_queMan_dest chan int) {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_queMan_dest <- dest
+					c_to_statemachine <- dest
 					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
 
@@ -423,7 +423,7 @@ func checkQueue(c_queMan_dest chan int) {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_queMan_dest <- dest
+					c_to_statemachine <- dest
 					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
 					
@@ -433,7 +433,7 @@ func checkQueue(c_queMan_dest chan int) {
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_queMan_dest <- dest
+					c_to_statemachine <- dest
 					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()									
 				}

@@ -44,6 +44,7 @@ func InitBank(c_from_main <-chan []byte, c_peerListUpdate chan string, c_to_queu
 				fmt.Println("elevMan unMarshal JSON error: ", json_err)
 			}
 
+			fmt.Printf("Info om IP %s \n", info_package.IPADDR)
 			_, in_bank := bank[info_package.IPADDR]
 
 			bank[info_package.IPADDR] = info_package
