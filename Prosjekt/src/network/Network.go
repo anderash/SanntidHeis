@@ -57,37 +57,7 @@ func IPString(addr Addr) string {
 	return Split(addr.String(), ":")[0]
 }
 
-/*
-func udpBroadcast(c_toNetwork <-chan []byte) {
 
-	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
-
-	if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(1)
-	}
-	fmt.Printf("Trying to dialUDP\n")
-	socket, err2 := DialUDP("udp4", nil, raddr)
-
-	if err2 != nil {
-		fmt.Printf("Problemer med Dial\n")
-		os.Exit(2)
-	}
-
-	for {
-		buffer := <-c_toNetwork
-		fmt.Printf("Trying to Write\n")
-		_, err3 := socket.Write(buffer)
-		//fmt.Printf("skrev %i bytes", n)
-
-		if err3 != nil {
-			fmt.Printf("Problemer med Write")
-			os.Exit(3)
-		}
-	}
-
-}
-*/
 
 func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	buffer := make([]byte, 1024)
@@ -149,6 +119,38 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	}
 
 }
+
+/*
+func udpBroadcast(c_toNetwork <-chan []byte) {
+
+	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
+
+	if err1 != nil {
+		fmt.Printf("Problemer med resolveUDPaddr")
+		os.Exit(1)
+	}
+	fmt.Printf("Trying to dialUDP\n")
+	socket, err2 := DialUDP("udp4", nil, raddr)
+
+	if err2 != nil {
+		fmt.Printf("Problemer med Dial\n")
+		os.Exit(2)
+	}
+
+	for {
+		buffer := <-c_toNetwork
+		fmt.Printf("Trying to Write\n")
+		_, err3 := socket.Write(buffer)
+		//fmt.Printf("skrev %i bytes", n)
+
+		if err3 != nil {
+			fmt.Printf("Problemer med Write")
+			os.Exit(3)
+		}
+	}
+
+}
+*/
 
 /*
 func externalIP() (string, error) {

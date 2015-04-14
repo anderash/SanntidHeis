@@ -18,8 +18,8 @@ func main() {
 	my_ipaddr := network.GetOwnIP()
 
 	c_peerUpdate := make(chan string)
-	c_to_queuemanager := make(chan []byte)
-	c_dest_to_statemachine := make(chan int)
+	c_elevMan_info := make(chan []byte)
+	c_queMan_dest := make(chan int)
 	c_pos_from_statemachine := make(chan int)
 	c_dir_from_statemachine := make(chan int)
 	c_io_floor := make(chan int)
@@ -28,13 +28,13 @@ func main() {
 	c_SM_output := make(chan []byte)
 	c_buttonEvents := make(chan []byte)
 
-	go elevManager.InitBank(c_fromNetwork, c_peerUpdate, c_to_queuemanager)
+	go elevManager.InitBank(c_fromNetwork, c_peerUpdate, c_elevMan_info)
 
-	queue.InitQueuemanager(my_ipaddr, c_to_queuemanager, c_dest_to_statemachine, c_pos_from_statemachine, c_dir_from_statemachine)
+	queue.InitQueuemanager(my_ipaddr, c_elevMan_info, c_queMan_dest, c_pos_from_statemachine, c_dir_from_statemachine)
 
 	driver.InitDriver(c_buttonEvents, c_io_floor, c_SM_output)
 
-	stateMachine.InitStateMachine(c_dest_to_statemachine, c_io_floor, c_SM_output)
+	stateMachine.InitStateMachine(c_queMan_dest, c_io_floor, c_SM_output)
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
 	go AliveRoutine(my_ipaddr, c_toNetwork)
