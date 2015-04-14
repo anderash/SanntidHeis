@@ -157,11 +157,7 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 			case "at_floor":
 				<-doorTimer.C
-				encoded_output, err := json.Marshal(closeDoor)
-				if err != nil {
-					fmt.Println("SM JSON error: ", err)
-				}
-				c_SM_output <- encoded_output
+				sendOutput(closeDoor, c_SM_output)
 				state = "idle"
 				fallthrough
 
@@ -169,29 +165,19 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				if destination > floorInput {
 					direction = 1
 					state = "move"
-
-					encoded_output, err := json.Marshal(goUp)
-					if err != nil {
-						fmt.Println("SM JSON error: ", err)
-					}
-					c_SM_output <- encoded_output
+					lightButton.FLOOR = destination
+					sendOutput(lightButton, c_SM_output) // Tror dette må gjøres av queueManager
+					sendOutput(goUp, c_SM_output)
 
 				} else if destination < floorInput {
 					direction = -1
 					state = "move"
-					encoded_output, err := json.Marshal(goDown)
-					if err != nil {
-						fmt.Println("SM JSON error: ", err)
-					}
-					c_SM_output <- encoded_output
+					sendOutput(goDown, c_SM_output)
 				} else {
 					direction = 0
 					state = "at_floor"
-					encoded_output, err := json.Marshal(stopMotor)
-					if err != nil {
-						fmt.Println("SM JSON error: ", err)
-					}
-					c_SM_output <- encoded_output
+					sendOutput(openDoor, c_SM_output)
+					sendOutput(stopMotor, c_SM_output)
 				}
 
 			}
@@ -199,28 +185,24 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case floorInput := <-c_io_floor:
 			fmt.Println(floorInput)
 			switch state{
-			case "idle":
+			case "idle": 			//Skal ikke skje
 
 			case "move":
 				if floorInput == destination {
-					encoded_output, err := json.Marshal(stopMotor)
-					if err != nil {
-						fmt.Println("SM JSON error: ", err)
-					}
-					c_SM_output <- encoded_output
+					sendOutput(stopMotor, c_SM_output)
 
 					fmt.Printf("Arrived at floor %d", floorInput)
-					encoded_output, err = json.Marshal(openDoor)
-					if err != nil {
-						fmt.Println("SM JSON error: ", err)
-					}
-					c_SM_output <- encoded_output
+					sendOutput(openDoor, c_SM_output)
 					doorTimer.Reset(3 * time.Second)
 
 					state = "at_floor"
 				}
+				else {
+					state = "move"
+				}
 
-			case state == "at_floor":
+			case "at_floor":
+				state = "idle" 		//Ikke tenkt noe mer over dette
 
 			}
 
