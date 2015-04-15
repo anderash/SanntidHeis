@@ -8,63 +8,62 @@ package driver
 import "C"
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
-type Input struct{
+type Input struct {
 	INPUT_TYPE int
 	/*
-	BUTTON = 0
-	FLOOR_SENSOR = 1
+		BUTTON = 0
+		FLOOR_SENSOR = 1
 	*/
 	BUTTON_TYPE int
 	/*
-	BUTTON_CALL_UP = 0
-    BUTTON_CALL_DOWN = 1
-    BUTTON_COMMAND = 2
-    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 	FLOOR int
-
 }
 
-type Output struct{
+type Output struct {
 	OUTPUT_TYPE int
 	/*
-	LIGHT_OUTPUT = 0
-	MOTOR_OUTPUT = 1 
+		LIGHT_OUTPUT = 0
+		MOTOR_OUTPUT = 1
 	*/
 
 	LIGHT_TYPE int
 	/*
-	BUTTON_LAMP = 0
-	FLOOR_INDICATOR = 1
-	DOOR_LAMP = 2
+		BUTTON_LAMP = 0
+		FLOOR_INDICATOR = 1
+		DOOR_LAMP = 2
 	*/
 
 	BUTTON_TYPE int
 	/*
-	BUTTON_CALL_UP = 0
-    BUTTON_CALL_DOWN = 1
-    BUTTON_COMMAND = 2
-    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 
 	FLOOR int
 
 	VALUE int
 	/*
-	on = 1
-	off = 0
+		on = 1
+		off = 0
 	*/
 
 	OUTPUT_DIRECTION int
 	/*
-	UP = 1
-	STOP = 0
-	DOWN = -1
+		UP = 1
+		STOP = 0
+		DOWN = -1
 	*/
 }
 
@@ -82,19 +81,18 @@ var buttonlight_matrix = [N_FLOORS][3]int{
 	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4}}
 
 var button_status = [N_FLOORS][3]int{
-		{0,0,0},
-		{0,0,0},
-		{0,0,0}}
+	{0, 0, 0},
+	{0, 0, 0},
+	{0, 0, 0}}
 
-var floor_status = [N_FLOORS]int{0,0,0,0}
+var floor_status = [N_FLOORS]int{0, 0, 0, 0}
 
-
-func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_outputs chan []byte) {
+func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_SM_output chan []byte, c_QM_output chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
 	for i := 0; i < N_FLOORS; i++ {
-		if i != 0{
+		if i != 0 {
 			Set_button_lamp(BUTTON_CALL_DOWN, i, 0)
 		}
 		if i != (N_FLOORS - 1) {
@@ -109,10 +107,9 @@ func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_outputs ch
 	// Make sure motor is dead
 	Set_motor_direction(0)
 
-
 	go Check_floor(c_floorEvents)
 	go Check_buttons(c_buttonEvents)
-	go Send_output(c_outputs)
+	go Send_output(c_SM_output, c_QM_output)
 
 	fmt.Printf("Initiated!\n")
 }
@@ -138,14 +135,14 @@ func get_floor_signal() int {
 func Get_button_signal() (int, int) {
 	for i := 0; i < N_FLOORS; i++ {
 		for j := 0; j < 3; j++ {
-			if (button_matrix[i][j] != -1) && (Io_read_bit(button_matrix[i][j]) == 1){
+			if (button_matrix[i][j] != -1) && (Io_read_bit(button_matrix[i][j]) == 1) {
 				if button_status[i][j] == 0 {
 					button_status[i][j] = 1
 					return i, j
 					// i tilsvarer etage (0 = 1. etg, 1 = 2. etg. osv)
 					// j tilsvarer type knapp. (0 = opp-knapp, 1 = ned-knapp, 2 = knapp inne i heis)
 				}
-			}else{
+			} else {
 				button_status[i][j] = 0
 			}
 		}
@@ -186,7 +183,7 @@ func Set_floor_indicator(floor int) {
 	} else {
 		Io_clear_bit(LIGHT_FLOOR_IND2)
 	}
-	
+
 }
 
 // Funker
@@ -203,8 +200,6 @@ func Set_motor_direction(direction int) {
 
 }
 
-
-
 // Funker.
 func Check_buttons(c_input chan []byte) {
 
@@ -212,16 +207,15 @@ func Check_buttons(c_input chan []byte) {
 		if floor, button_type := Get_button_signal(); floor != -1 {
 			input := Input{BUTTON, button_type, floor}
 			encoded_input, err := json.Marshal(input)
-			if err != nil{
+			if err != nil {
 				fmt.Println("error: ", err)
 			}
 			c_input <- encoded_input
 		}
 
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
-
 
 func Check_floor(c_io_floor chan int) {
 	floor := get_floor_signal()
@@ -231,47 +225,63 @@ func Check_floor(c_io_floor chan int) {
 
 	for {
 		floor = get_floor_signal()
-		if floor != prevFloor  &&  floor != -1 {
+		if floor != prevFloor && floor != -1 {
 			c_io_floor <- floor
 		}
 		prevFloor = floor
 
-
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
-
-//Funker, men med variabel reaksjonstid
-func Send_output(c_output chan []byte) {
+//Funker, men med variabel reaksjonstid.
+// Kan optimeres: Fra QueueManager kommer kun buttonLight output, og fra Statemachine kommer kun motor og doorlight
+func Send_output(c_output chan []byte, c_QM_output chan []byte) {
 	var decoded_output Output
-	for{
-		select{
-		case output := <- c_output:
+	for {
+		select {
+		case output := <-c_output:
 			err3 := json.Unmarshal(output, &decoded_output)
-			if err3 != nil{
+			if err3 != nil {
 				fmt.Println("error: ", err3)
 			}
 
 			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
 				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
-					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR{
+					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR {
 						Set_floor_indicator(decoded_output.FLOOR)
-					}else if decoded_output.LIGHT_TYPE == DOOR_LAMP{
+					} else if decoded_output.LIGHT_TYPE == DOOR_LAMP {
 						Set_door_open_lamp(decoded_output.VALUE)
 					}
-					
-				} else{
+
+				} else {
 					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
 				}
 			}
 
-
 			if decoded_output.OUTPUT_TYPE == MOTOR_OUTPUT {
 				Set_motor_direction(decoded_output.OUTPUT_DIRECTION)
+			}
+
+		case l_output := <-c_QM_output:
+			err3 := json.Unmarshal(l_output, &decoded_output)
+			if err3 != nil {
+				fmt.Println("error: ", err3)
+			}
+
+			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
+				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
+					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR {
+						Set_floor_indicator(decoded_output.FLOOR)
+					} else if decoded_output.LIGHT_TYPE == DOOR_LAMP {
+						Set_door_open_lamp(decoded_output.VALUE)
+					}
+
+				} else {
+					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
+				}
 			}
 		}
 	}
 
 }
-

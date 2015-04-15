@@ -2,7 +2,7 @@ package main
 
 import (
 	"./driver"
-//	"./elevManager"
+	//	"./elevManager"
 	"./network"
 	"./queue"
 	"./stateMachine"
@@ -19,80 +19,92 @@ func main() {
 	my_ipaddr := network.GetOwnIP()
 
 	c_io_button := make(chan []byte) //driver.Input
-	c_io_floor := make(chan int)	// int floor
+	c_io_floor := make(chan int)     // int floor
 
-	c_peerUpdate := make(chan string) //IP-adress
-	c_toNetwork := make(chan []byte)	//queuemanager.ElevInfo
-	c_fromNetwork := make(chan []byte)	//queuemanager.ElevInfo
+	c_peerUpdate := make(chan string)  //IP-adress
+	c_toNetwork := make(chan []byte)   //queuemanager.ElevInfo
+	c_fromNetwork := make(chan []byte) //queuemanager.ElevInfo
 
-	c_router_info := make(chan []byte)	//queuemanager.ElevInfo
+	c_router_info := make(chan []byte) //queuemanager.ElevInfo
 
-//	c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
-	c_queMan_dest := make(chan int)	// int dest
+	c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
+	c_queMan_dest := make(chan int)      // int dest
+	c_queMan_output := make(chan []byte) //queuemanager.Output
 
-	c_SM_state := make(chan []byte)		//stateMachine.Output
-	c_SM_output := make(chan []byte)	//stateMachine.Output
-	c_SM_floor := make(chan int)	//int floor
+	c_SM_output := make(chan []byte) //stateMachine.Output
+	c_SM_state := make(chan []byte)  //stateMachine.Output
+	c_SM_floor := make(chan int)     //int floor
 
+	go router(my_ipaddr, c_io_button, c_SM_state, c_toNetwork, c_router_info)
 
+	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate)
 
+	driver.InitDriver(c_io_button, c_io_floor, c_SM_output, c_queMan_output)
 
+	statemachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
 
+	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
 
 }
 
 /*
 The router takes in info fromchannels,
-and send it to those modules that need the update: 
+and send it to those modules that need the update:
 IO button channel: toNet(myIP, info), queuemanager(myIP, info)
 IO floor channel
 
 */
-func router(my_ip string,  c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte, c_SM_floor chan<- int) {
+func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var elevator queuemanager.ElevInfo
-	var floor_input int	
+	var floor_input int
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
 
-	myElevator := queuemanager.ElevInfo{my_ip, true, false, false,0,0,0,0,0};
+	myElevator := queuemanager.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, 0, 0}
 
-	for{
-		select{
+	for {
+		select {
 
-			case e_button_input := <- c_io_button:
-				json_err := json.Unmarshal(e_button_input, &buttonpress)
-				if json_err != nil {
-					fmt.Println("router unMarshal JSON error: ", json_err)
-				}
-				myElevator.F_BUTTONPRESS = true
-				myElevator.ButtonType = buttonpress.BUTTON_TYPE
-				myElevator.ButtonFloor = buttonpress.FLOOR
-				sendButtonpress(myElevator, c_router_info)
-				sendButtonpress(myElevator, c_toNetwork)
+		case e_button_input := <-c_io_button:
+			json_err := json.Unmarshal(e_button_input, &buttonpress)
+			if json_err != nil {
+				fmt.Println("router unMarshal JSON error: ", json_err)
+			}
+			myElevator.F_NEW_INFO = true
+			myElevator.F_BUTTONPRESS = true
+			myElevator.ButtonType = buttonpress.BUTTON_TYPE
+			myElevator.ButtonFloor = buttonpress.FLOOR
+			sendElev(myElevator, c_router_info)
+			sendElev(myElevator, c_toNetwork)
+			myElevator.F_BUTTONPRESS = false
 
-			case e_state := <- c_SM_State:
-				json_err := json.Unmarshal(e_state, &state)
-				if json_err != nil {
-					fmt.Println("router unMarshal JSON error: ", json_err)
-				}
-				myElevator.POSITION = state.POSITION
-				myElevator.DIRECTION = state.DIRECTION
-				myElevator.DESTINATION = state.DESTINATION			
-
+		case e_state := <-c_SM_State:
+			json_err := json.Unmarshal(e_state, &state)
+			if json_err != nil {
+				fmt.Println("router unMarshal JSON error: ", json_err)
+			}
+			myElevator.F_NEW_INFO = true
+			myElevator.POSITION = state.POSITION
+			myElevator.DIRECTION = state.DIRECTION
+			myElevator.DESTINATION = state.DESTINATION
+			sendElev(myElevator, c_router_info)
+			sendElev(myElevator, c_toNetwork)
+		// Send Alive-Ping
+		case <-time.After(500 * time.Millisecond):
+			myElevator.F_NEW_INFO = false
+			sendElev(myElevator, c_toNetwork)
 
 		}
 	}
 }
-
-
 
 func sendElev(info ElevInfo, channel chan []byte) {
 	encoded_output, err := json.Marshal(info)
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
 	}
-	channel <- encoded_output		
+	channel <- encoded_output
 }
 
 func sendSMOutput(output Output, channel chan []byte) {
@@ -100,7 +112,7 @@ func sendSMOutput(output Output, channel chan []byte) {
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
 	}
-	channel <- encoded_output	
+	channel <- encoded_output
 }
 
 func sendButtonpress(info Input, channel chan []byte) {
@@ -108,7 +120,5 @@ func sendButtonpress(info Input, channel chan []byte) {
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
 	}
-	channel <- encoded_output	
+	channel <- encoded_output
 }
-
-

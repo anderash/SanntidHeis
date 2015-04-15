@@ -2,13 +2,13 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
 	. "net"
 	"os"
 	"sort"
 	. "strings"
 	"time"
-	"encoding/json"
 )
 
 const (
@@ -73,8 +73,6 @@ func IPString(addr Addr) string {
 	return Split(addr.String(), ":")[0]
 }
 
-
-
 func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	buffer := make([]byte, 1024)
 
@@ -95,8 +93,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 
 	for {
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
-		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)		
-		
+		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
 
 		listHasChanges = false
 		peerList = nil
@@ -106,10 +103,9 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 				listHasChanges = true
 			}
 			lastSeen[IPString(remoteADDR)] = time.Now()
-		} else{
+		} else {
 			fmt.Println("Network error:", err)
 		}
-
 
 		for key, value := range lastSeen {
 			if time.Now().Sub(value) > deadTimeout {
@@ -127,24 +123,22 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			sort.Strings(peerList)
 			//c_peerListUpdate <- peerList
 		}
-		if err == nil{
+		if err == nil {
 			stripped_info := buffer[:nrBytes]
 
 			json_err := json.Unmarshal(stripped_info, &info_package)
 			if json_err != nil {
 				fmt.Println("elevMan unMarshal JSON error: ", json_err)
 			}
-			// Send info only if it has new info			
-			if info_package.F_NEW_INFO{
+			// Send info only if it has new info
+			if info_package.F_NEW_INFO {
 				c_fromNetwork <- stripped_info
 			}
 		}
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 
 }
-
-
 
 /*
 func udpBroadcast(c_toNetwork <-chan []byte) {
