@@ -43,97 +43,59 @@ type Output struct {
 	*/
 }
 
-var floorInput int
+type ElevState struct {
+	POSITION    int
 
-/*		
-0
-1
-2
-3
-*/
-
-var direction int
-
+	DIRECTION   int
 /*
 	opp = 1, ned = -1, stillestående = 0
 */
-
-var destination int
-
+	DESTINATION int
 /*
 	1. etg = 0
 	2. etg = 1
 	3. etg = 2
 	4. etg = 3
-*/
+*/	
+}
+
+var elevatorState ElevState
+
+
 
 var state string
 
 // Må på en eller annen måte sørge for at heisen går ned til 1. etg ved oppstart
-func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte) {
+func InitStateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte, c_SM_state chan []byte) {
 
+	elevatorState = {0,-1,0}
 	// run := false
 	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
 
-	floorInput = <- c_io_floor
-	if floorInput != 0 {
-		encoded_output, err := json.Marshal(goDown)
-		if err != nil {
-			fmt.Println("init JSON error: ", err)
-		}
-		c_SM_output <- encoded_output
+	elevatorState.POSITION = <- c_io_floor
+	if elevatorState.POSITION != 0 {
+		sendOutput(goDown, c_SM_output)
 	}
 
 
 	for {
-		floorInput = <- c_io_floor
-		fmt.Println("FLOOR SENSOR SIGNAL:", floorInput)
-		if floorInput == 0 {
+		elevatorState.POSITION = <- c_io_floor
+		fmt.Println("FLOOR SENSOR SIGNAL:", elevatorState.POSITION)
+		if elevatorState.POSITION == 0 {
 			break
 		}
 	}
 
-	encoded_output, err := json.Marshal(stopMotor)
-	if err != nil {
-		fmt.Println("init JSON error: ", err)
-	}
-	c_SM_output <- encoded_output
+	sendOutput(stopMotor,c_SM_output)
 
+	elevatorState.DIRECTION = 0
+	sendState(elevatorState, c_SM_state)
 
-// init:
-// 	for {
-// 		select {
-// 		case floorInput := <-c_io_floor:
-// 			fmt.Printf("FLOOR SENSIR SIGNAL\n")
-// 			if floorInput == 0 {
-// 				state = "idle"
-// 				fmt.Printf("Arrived at floor 0, stopping motor\n")
-// 				encoded_output, err := json.Marshal(stopMotor)
-// 				if err != nil {
-// 					fmt.Println("init JSON error: ", err)
-// 				}
-// 				c_SM_output <- encoded_output
-// 				break init
-// 			}
-// 		case <-time.After(100 * time.Millisecond):
-// 			if !run {
-// 				fmt.Printf("Starting elevator\n")
-
-// 				encoded_output, err := json.Marshal(goDown)
-// 				if err != nil {
-// 					fmt.Println("init JSON error: ", err)
-// 				}
-// 				c_SM_output <- encoded_output
-// 				run = true
-// 			}
-// 		}
-// 	}
-
-	go stateMachine(c_queMan_destination, c_io_floor, c_SM_output)
+	go stateMachine(c_queMan_destination, c_io_floor, c_SM_output, c_SM_state)
 }
 
-func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte) {
+func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte, c_SM_state chan []byte) {
 
 	goUp := Output{1, -1, -1, -1, -1, 1}
 	goDown := Output{1, -1, -1, -1, -1, -1}
@@ -142,13 +104,11 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 	openDoor := Output{0, 2, -1, -1, 1, -1}
 	closeDoor := Output{0, 2, -1, -1, 0, -1}
 
-	lightButton := Output{0, 0, -1, -1, 1, 0}
-
 	doorTimer := time.NewTimer(3 * time.Second)
 
 	for {
 		select {
-		case destination = <-c_queMan_destination:
+		case elevatorState.DIRECTION = <-c_queMan_destination:
 			
 
 			switch state{
@@ -162,36 +122,39 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				fallthrough
 
 			case "idle":
-				if destination > floorInput {
-					direction = 1
+				if elevatorState.DIRECTION > elevatorState.POSITION {
+					elevatorState.DIRECTION = 1
 					state = "move"
-					lightButton.FLOOR = destination
-					sendOutput(lightButton, c_SM_output) // Tror dette må gjøres av queueManager
 					sendOutput(goUp, c_SM_output)
+					sendState(elevatorState)
 
-				} else if destination < floorInput {
-					direction = -1
+				} else if elevatorState.DIRECTION < elevatorState.POSITION {
+					elevatorState.DIRECTION = -1
 					state = "move"
 					sendOutput(goDown, c_SM_output)
+					sendState(elevatorState)
 				} else {
-					direction = 0
+					elevatorState.DIRECTION = 0
 					state = "at_floor"
 					sendOutput(openDoor, c_SM_output)
 					sendOutput(stopMotor, c_SM_output)
+					sendState(elevatorState)
 				}
 
 			}
 
-		case floorInput := <-c_io_floor:
-			fmt.Println(floorInput)
+		case elevatorState.POSITION := <-c_io_floor:
+
+			fmt.Println(elevatorState.POSITION)
 			switch state{
 			case "idle": 			//Skal ikke skje
 
 			case "move":
-				if floorInput == destination {
+				if elevatorState.POSITION == elevatorState.DIRECTION {
 					sendOutput(stopMotor, c_SM_output)
+					elevatorState.DIRECTION = 0
 
-					fmt.Printf("Arrived at floor %d", floorInput)
+					fmt.Printf("Arrived at floor %d", elevatorState.POSITION)
 					sendOutput(openDoor, c_SM_output)
 					doorTimer.Reset(3 * time.Second)
 
@@ -205,6 +168,7 @@ func stateMachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				state = "idle" 		//Ikke tenkt noe mer over dette
 
 			}
+			sendState(elevatorState)
 
 		case <-doorTimer.C:
 			switch state{
@@ -223,4 +187,12 @@ func sendOutput(output Output, c_SM_output chan []byte) {
 		fmt.Println("SM JSON error: ", err)
 	}
 	c_SM_output <- encoded_output	
+}
+
+func sendState(elevatorState ElevState, channel chan []byte) {
+	encoded_output, err := json.Marshal(elevatorState)
+	if err != nil {
+		fmt.Println("SM JSON error: ", err)
+	}
+	channel <- encoded_output		
 }

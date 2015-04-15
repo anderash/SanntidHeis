@@ -58,8 +58,8 @@ type ElevInfo struct {
 	DIRECTION   int
 	DESTINATION int
 
-	ButtonType  int
-	ButtonFloor int
+	BUTTONTYPE  int
+	BUTTONFLOOR int
 }
 
 const(
@@ -75,7 +75,7 @@ var my_ipaddr string
 
 
 
-func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int) {
+func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++{
@@ -85,7 +85,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_from_elevManager, c_pos_from_statemachine, c_dir_from_statemachine)
+	go processNewInfo(c_from_elevManager, c_peerListUpdate)
 	go checkQueue(c_to_statemachine)
 }
 
@@ -300,7 +300,7 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int{
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
 // Må teste om deleteOrder() funker
-func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
+func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string){	//, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	for {
 		select{
@@ -312,31 +312,42 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 			if _, ok := Active_elevators[elev_info.IPADDR]; !ok {
 				AppendElevator(elev_info.IPADDR)
 			}
-			temp_elev := Active_elevators[elev_info.IPADDR]
-			temp_elev.POSITION = elev_info.POSITION
-			temp_elev.DIRECTION = elev_info.DIRECTION
+			if elev_info.F_NEW_INFO {
 
-			// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
-			if elev_info.IPADDR != my_ipaddr {
+				temp_elev := Active_elevators[elev_info.IPADDR]
 				temp_elev.POSITION = elev_info.POSITION
 				temp_elev.DIRECTION = elev_info.DIRECTION
-				temp_elev.DESTINATION = elev_info.DESTINATION
-			} 
-			
-			Active_elevators[elev_info.IPADDR] = temp_elev
+
+				// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
+				if elev_info.IPADDR != my_ipaddr {
+					temp_elev.POSITION = elev_info.POSITION
+					temp_elev.DIRECTION = elev_info.DIRECTION
+					temp_elev.DESTINATION = elev_info.DESTINATION
+				} 
+				
+				Active_elevators[elev_info.IPADDR] = temp_elev
+
+				if (elev_info.POSITION+2)/2 -1 == elev_info.DESTINATION {
+					deleteOrder(elev_info.IPADDR, (elev_info.POSITION+2)/2 -1)
+				}
+				if elev_info.F_BUTTONPRESS == true {
+					AppendOrder(elev_info.BUTTONTYPE, elev_info.BUTTONFLOOR)
+				}
+
+				PrintActiveElevators2()
+
+			}
 
 			if elev_info.F_DEAD_ELEV == true {
 				RemoveElevator(elev_info.IPADDR)
 			}
-			if (elev_info.POSITION+2)/2 -1 == elev_info.DESTINATION {
-				deleteOrder(elev_info.IPADDR, (elev_info.POSITION+2)/2 -1)
-			}
-			if elev_info.F_BUTTONPRESS == true {
-				AppendOrder(elev_info.ButtonType, elev_info.ButtonFloor)
-			}
 
-			PrintActiveElevators2()
 
+		case peerUpdate := <- c_peerListUpdate:
+			RemoveElevator(peerUpdate)
+
+// All info kommer fra Router:
+/*			
 		case pos := <- c_pos_from_statemachine:
 			temp_elev := Active_elevators[my_ipaddr]
 			temp_elev.POSITION = pos
@@ -354,9 +365,7 @@ func processNewInfo(c_from_elevManager chan []byte, c_pos_from_statemachine chan
 			Active_elevators[my_ipaddr] = temp_elev
 
 			PrintActiveElevators2()
-
-
-
+*/
 		}
 
 	}

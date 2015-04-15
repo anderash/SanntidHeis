@@ -8,6 +8,7 @@ import (
 	"sort"
 	. "strings"
 	"time"
+	"encoding/json"
 )
 
 const (
@@ -17,6 +18,21 @@ const (
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 1 * time.Second
 )
+
+type ElevInfo struct {
+	IPADDR     string
+	F_NEW_INFO bool
+
+	F_DEAD_ELEV   bool
+	F_BUTTONPRESS bool
+
+	POSITION    int
+	DIRECTION   int
+	DESTINATION int
+
+	ButtonType  int
+	ButtonFloor int
+}
 
 var localIP string
 
@@ -75,6 +91,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	lastSeen := make(map[string]time.Time)
 	var listHasChanges bool
 	var peerList []string
+	var info_package ElevInfo
 
 	for {
 		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
@@ -111,14 +128,23 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			//c_peerListUpdate <- peerList
 		}
 		if err == nil{
-			stripped := buffer[:nrBytes]
-			c_fromNetwork <- stripped
-			//c_NrBytes <- nrBytes
+			stripped_info := buffer[:nrBytes]
+
+			json_err := json.Unmarshal(stripped_info, &info_package)
+			if json_err != nil {
+				fmt.Println("elevMan unMarshal JSON error: ", json_err)
+			}
+			// Send info only if it has new info			
+			if info_package.F_NEW_INFO{
+				c_fromNetwork <- stripped_info
+			}
 		}
 		time.Sleep(10*time.Millisecond)
 	}
 
 }
+
+
 
 /*
 func udpBroadcast(c_toNetwork <-chan []byte) {
