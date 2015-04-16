@@ -37,7 +37,7 @@ func main() {
 
 	c_toNetwork := make(chan []byte)
 	c_fromNetwork := make(chan []byte)
-	c_peerList := make(chan []string)
+	c_peerList := make(chan string)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 

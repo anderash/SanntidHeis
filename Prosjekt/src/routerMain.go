@@ -87,6 +87,7 @@ func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byt
 			if json_err != nil {
 				fmt.Println("router unMarshal JSON error: ", json_err)
 			}
+			fmt.Println(state)
 			myElevator.F_NEW_INFO = true
 			myElevator.POSITION = state.POSITION
 			myElevator.DIRECTION = state.DIRECTION
