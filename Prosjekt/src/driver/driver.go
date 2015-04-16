@@ -111,7 +111,7 @@ func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_SM_output 
 	go Check_buttons(c_buttonEvents)
 	go Send_output(c_SM_output, c_QM_output)
 
-	fmt.Printf("Initiated!\n")
+	fmt.Printf("Driver initiated!\n")
 }
 
 // Funker

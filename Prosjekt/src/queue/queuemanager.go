@@ -84,6 +84,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 
 	go processNewInfo(c_from_elevManager, c_peerListUpdate)
 	go checkQueue(c_to_statemachine)
+	fmt.Printf("Queuemanager operational\n")
 }
 
 // Denne funkjsonen brukes kun ifm debugging

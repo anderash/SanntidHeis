@@ -22,18 +22,17 @@ func main() {
 	c_io_floor := make(chan int)     // int floor
 
 	c_peerUpdate := make(chan string)  //IP-adress
-	c_toNetwork := make(chan []byte)   //queuemanager.ElevInfo
-	c_fromNetwork := make(chan []byte) //queuemanager.ElevInfo
+	c_toNetwork := make(chan []byte)   //queue.ElevInfo
+	c_fromNetwork := make(chan []byte) //queue.ElevInfo
 
-	c_router_info := make(chan []byte) //queuemanager.ElevInfo
+	c_router_info := make(chan []byte) //queue.ElevInfo
 
-	c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
+//	c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
 	c_queMan_dest := make(chan int)      // int dest
-	c_queMan_output := make(chan []byte) //queuemanager.Output
+	c_queMan_output := make(chan []byte) //queue.Output
 
 	c_SM_output := make(chan []byte) //stateMachine.Output
 	c_SM_state := make(chan []byte)  //stateMachine.Output
-	c_SM_floor := make(chan int)     //int floor
 
 	go router(my_ipaddr, c_io_button, c_SM_state, c_toNetwork, c_router_info)
 
@@ -41,45 +40,49 @@ func main() {
 
 	driver.InitDriver(c_io_button, c_io_floor, c_SM_output, c_queMan_output)
 
-	statemachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
-
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
+
+	stateMachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
+
+	for{
+
+	}
 
 }
 
 /*
 The router takes in info fromchannels,
 and send it to those modules that need the update:
-IO button channel: toNet(myIP, info), queuemanager(myIP, info)
+IO button channel: toNet(myIP, info), queue(myIP, info)
 IO floor channel
 
 */
 func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
-	var elevator queuemanager.ElevInfo
-	var floor_input int
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
 
-	myElevator := queuemanager.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, 0, 0}
+	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, 0, 0}
 
 	for {
 		select {
 
 		case e_button_input := <-c_io_button:
+			fmt.Printf("Router: ButtonInput \n")
 			json_err := json.Unmarshal(e_button_input, &buttonpress)
 			if json_err != nil {
 				fmt.Println("router unMarshal JSON error: ", json_err)
 			}
 			myElevator.F_NEW_INFO = true
 			myElevator.F_BUTTONPRESS = true
-			myElevator.ButtonType = buttonpress.BUTTON_TYPE
-			myElevator.ButtonFloor = buttonpress.FLOOR
+			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
+			myElevator.BUTTONFLOOR = buttonpress.FLOOR
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
 			myElevator.F_BUTTONPRESS = false
 
-		case e_state := <-c_SM_State:
+		case e_state := <-c_SM_state:
+			fmt.Printf("Router: StateInput \n")
 			json_err := json.Unmarshal(e_state, &state)
 			if json_err != nil {
 				fmt.Println("router unMarshal JSON error: ", json_err)
@@ -92,6 +95,7 @@ func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byt
 			sendElev(myElevator, c_toNetwork)
 		// Send Alive-Ping
 		case <-time.After(500 * time.Millisecond):
+			fmt.Printf("Router: Ping \n")
 			myElevator.F_NEW_INFO = false
 			sendElev(myElevator, c_toNetwork)
 
@@ -99,7 +103,7 @@ func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byt
 	}
 }
 
-func sendElev(info ElevInfo, channel chan []byte) {
+func sendElev(info queue.ElevInfo, channel chan<- []byte) {
 	encoded_output, err := json.Marshal(info)
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
@@ -107,7 +111,7 @@ func sendElev(info ElevInfo, channel chan []byte) {
 	channel <- encoded_output
 }
 
-func sendSMOutput(output Output, channel chan []byte) {
+func sendSMOutput(output stateMachine.Output, channel chan<- []byte) {
 	encoded_output, err := json.Marshal(output)
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
@@ -115,7 +119,7 @@ func sendSMOutput(output Output, channel chan []byte) {
 	channel <- encoded_output
 }
 
-func sendButtonpress(info Input, channel chan []byte) {
+func sendButtonpress(info driver.Input, channel chan<- []byte) {
 	encoded_output, err := json.Marshal(info)
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)

@@ -89,7 +89,9 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 
 	elevatorState.DIRECTION = 0
 	sendState(elevatorState, c_SM_state)
+	state = "idle"
 
+	fmt.Printf("Statemachine operational\n")
 	go statemachine(c_queMan_destination, c_io_floor, c_SM_output, c_SM_state)
 }
 
@@ -103,6 +105,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 	closeDoor := Output{0, 2, -1, -1, 0, -1}
 
 	doorTimer := time.NewTimer(3 * time.Second)
+	doorTimer.Stop()
 
 	for {
 		select {
@@ -123,19 +126,19 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 					elevatorState.DIRECTION = 1
 					state = "move"
 					sendOutput(goUp, c_SM_output)
-					sendState(elevatorState)
+					sendState(elevatorState, c_SM_state)
 
 				} else if elevatorState.DIRECTION < elevatorState.POSITION {
 					elevatorState.DIRECTION = -1
 					state = "move"
 					sendOutput(goDown, c_SM_output)
-					sendState(elevatorState)
+					sendState(elevatorState, c_SM_state)
 				} else {
 					elevatorState.DIRECTION = 0
 					state = "at_floor"
 					sendOutput(openDoor, c_SM_output)
 					sendOutput(stopMotor, c_SM_output)
-					sendState(elevatorState)
+					sendState(elevatorState, c_SM_state)
 				}
 
 			}
@@ -164,7 +167,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				state = "idle" //Ikke tenkt noe mer over dette
 
 			}
-			sendState(elevatorState)
+			sendState(elevatorState, c_SM_state)
 
 		case <-doorTimer.C:
 			switch state {

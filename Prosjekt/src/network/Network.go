@@ -131,7 +131,9 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 				fmt.Println("elevMan unMarshal JSON error: ", json_err)
 			}
 			// Send info only if it has new info
+			fmt.Printf("Ping from IP %s \n", info_package.IPADDR)
 			if info_package.F_NEW_INFO {
+				fmt.Printf("New info arrived from IP %s \n", info_package.IPADDR)
 				c_fromNetwork <- stripped_info
 			}
 		}
