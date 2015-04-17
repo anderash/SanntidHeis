@@ -448,3 +448,7 @@ func checkQueue(c_to_statemachine chan int) {
 		}
 	}
 }
+
+func sendButtonLamp() {
+	
+}
