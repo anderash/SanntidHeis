@@ -77,7 +77,9 @@ func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan [
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
 			sendElev(myElevator, c_router_info)
-			sendElev(myElevator, c_toNetwork)
+			if (buttonpress.BUTTON_TYPE != 2){
+				sendElev(myElevator, c_toNetwork)
+			}			
 			myElevator.F_BUTTONPRESS = false
 
 		case e_state := <-c_SM_state:

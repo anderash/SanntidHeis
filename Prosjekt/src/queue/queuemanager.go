@@ -61,6 +61,12 @@ type ElevInfo struct {
 	BUTTONFLOOR int
 }
 
+type ButtonLight struct{
+	BUTTON_TYPE int
+	BUTTONFLOOR int
+	VALUE int
+}
+
 const (
 	N_FLOORS    = 4
 	N_POSITIONS = N_FLOORS + (N_FLOORS - 1)
