@@ -77,7 +77,7 @@ func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan [
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
 			sendElev(myElevator, c_router_info)
-			if (buttonpress.BUTTON_TYPE != 2){
+			if (buttonpress.BUTTON_TYPE != 2){ 		//Sender ikke på nett om det er en intern knapp
 				sendElev(myElevator, c_toNetwork)
 			}			
 			myElevator.F_BUTTONPRESS = false
