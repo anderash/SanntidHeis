@@ -138,7 +138,7 @@ func PrintActiveElevators2() {
 	// orderstr := ""
 	for key, elev := range Active_elevators {
 		ipstr += "Elevator: " + key + "\t"
-		infostr += "Position: " + strconv.Itoa(elev.POSITION) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
+		infostr += "Position: " + strconv.Itoa(elev.POSITION/2) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
 
 		tempstr := "     "
 		for i := 0; i < 3; i++ {
@@ -205,6 +205,7 @@ func AppendOrder(button_type int, button_floor int) {
 		button_dir = "down"
 	} else if button_type == 2 {
 		temp_elev := Active_elevators[my_ipaddr]
+		// TROR DETTE ER UNØDVENDIG. BØR I HVERT FALL OPTIMALISERES
 		for i := 0; i < 3; i++ {
 			temp_elev.ORDER_MATRIX[button_floor][i] = 1
 		}
