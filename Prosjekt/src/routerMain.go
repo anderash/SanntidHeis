@@ -35,7 +35,7 @@ func main() {
 	c_SM_state := make(chan []byte)  //stateMachine.Output
 	c_forloop := make(chan bool)
 
-	go router(my_ipaddr, c_io_button, c_SM_state, c_toNetwork, c_router_info)
+	go router(my_ipaddr, c_fromNetwork, c_io_button, c_SM_state, c_toNetwork, c_router_info)
 
 	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate)
 
@@ -56,7 +56,7 @@ IO button channel: toNet(myIP, info), queue(myIP, info)
 IO floor channel
 
 */
-func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
+func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
@@ -93,9 +93,12 @@ func router(my_ipaddr string, c_io_button <-chan []byte, c_SM_state <-chan []byt
 			myElevator.DESTINATION = state.DESTINATION
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
+
+		case netInfo := <- c_fromNetwork:
+			c_router_info <- netInfo
 		// Send Alive-Ping
 		case <-time.After(500 * time.Millisecond):
-			fmt.Printf("Router: Ping \n")
+//			fmt.Printf("Router: Ping \n")
 			myElevator.F_NEW_INFO = false
 			sendElev(myElevator, c_toNetwork)
 

@@ -53,7 +53,7 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 		select {
 		case msg := <-c_toNetwork:
 			msgConn.Write(msg)
-			fmt.Printf("Sendt message \n")
+//			fmt.Printf("Sendt message \n")
 		}
 
 	}
@@ -137,11 +137,9 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 				c_fromNetwork <- stripped_info
 			}
 		}
-		time.Sleep(10 * time.Millisecond)
-	}
 
+	}	
 }
-
 /*
 func udpBroadcast(c_toNetwork <-chan []byte) {
 

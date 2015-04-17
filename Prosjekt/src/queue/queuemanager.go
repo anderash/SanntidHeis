@@ -13,14 +13,14 @@ type Elevator struct {
 	IPADDR   string
 	POSITION int
 	/*
-		   Etg.			Pos. nr.
-		    1 ............ 0
-		  	  ............ 1
-			2 ............ 2
-			  ............ 3
-			3 ............ 4
-			  ............ 5
-			4 ............ 6
+	   Etg.			Pos. nr.	ElevInfo.POSITION
+	    1 ......... 0.........0
+	  	  ......... 1.........0/1
+		2 ......... 2.........1
+		  ......... 3.........1/2
+		3 ......... 4.........2
+		  ......... 5.........2/3
+		4 ......... 6.........3
 	*/
 
 	DIRECTION int
@@ -294,9 +294,10 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
 // Må teste om deleteOrder() funker
 func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
+	var last_info ElevInfo
 	for {
 		select {
-		case encoded_elev_info := <-c_from_elevManager:
+		case encoded_elev_info := <-c_from_elevManager:			
 			err := json.Unmarshal(encoded_elev_info, &elev_info)
 			if err != nil {
 				fmt.Println("error: ", err)
@@ -304,30 +305,38 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 			if _, ok := Active_elevators[elev_info.IPADDR]; !ok {
 				AppendElevator(elev_info.IPADDR)
 			}
-			if elev_info.F_NEW_INFO {
+			if elev_info.F_NEW_INFO && (elev_info != last_info) {
 
 				temp_elev := Active_elevators[elev_info.IPADDR]
-				temp_elev.POSITION = elev_info.POSITION
+				temp_elev.POSITION = elev_info.POSITION*2
 				temp_elev.DIRECTION = elev_info.DIRECTION
 
 				// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
-				if elev_info.IPADDR != my_ipaddr {
-					temp_elev.POSITION = elev_info.POSITION
+				if elev_info.IPADDR != my_ipaddr {					
 					temp_elev.DIRECTION = elev_info.DIRECTION
 					temp_elev.DESTINATION = elev_info.DESTINATION
 				}
 
 				Active_elevators[elev_info.IPADDR] = temp_elev
 
-				if (elev_info.POSITION+2)/2-1 == elev_info.DESTINATION {
-					deleteOrder(elev_info.IPADDR, (elev_info.POSITION+2)/2-1)
-				}
+				//elev_info.POSITION har samme sytax som Destination
+				// Trenger kanskje ikke slette for hver gang vi får ny info?
+				
+				
 				if elev_info.F_BUTTONPRESS == true {
 					AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
+				}else if elev_info.POSITION == elev_info.DESTINATION {
+					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
+					fmt.Printf("queue: Order completed, deleting\n")
 				}
 
-				PrintActiveElevators2()
+				
+				last_info = elev_info
 
+				PrintActiveElevators2()
+			}else{
+				last_info = elev_info
+				fmt.Printf("queue: No new info\n")
 			}
 
 			if elev_info.F_DEAD_ELEV == true {
@@ -380,7 +389,7 @@ func checkQueue(c_to_statemachine chan int) {
 			for i := pos_floor; i < (N_FLOORS - 1); i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					fmt.Println("New destination floor: ", dest)
+					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -401,7 +410,7 @@ func checkQueue(c_to_statemachine chan int) {
 			for i := pos_floor; i >= 0; i-- {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					// fmt.Println("New destination floor: ", dest)
+					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -415,7 +424,7 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
 			pos_floor = (Active_elevators[my_ipaddr].POSITION+2)/2 - 1
 			for i := 0; i < (N_FLOORS); i++ {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 {//&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
@@ -425,7 +434,7 @@ func checkQueue(c_to_statemachine chan int) {
 					time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
 
-				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 {//&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]

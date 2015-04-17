@@ -88,7 +88,7 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 	sendOutput(stopMotor, c_SM_output)
 
 	elevatorState.DIRECTION = 0
-	//sendState(elevatorState, c_SM_state)
+	sendState(elevatorState, c_SM_state)
 	state = "idle"
 
 	fmt.Printf("Statemachine operational\n")
@@ -110,7 +110,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 	for {
 		select {
 		case elevatorState.DESTINATION = <-c_queMan_destination:
-			fmt.Printf("SM: Floorinput \n")
+			fmt.Printf("SM: Destination \n")
 			switch state {
 
 			case "move":
@@ -134,14 +134,16 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 					sendOutput(goDown, c_SM_output)
 					sendState(elevatorState, c_SM_state)
 				} else {
-					elevatorState.DESTINATION = 0
+					elevatorState.DIRECTION = 0
 					state = "at_floor"
 					sendOutput(openDoor, c_SM_output)
 					sendOutput(stopMotor, c_SM_output)
 					sendState(elevatorState, c_SM_state)
+					doorTimer.Reset(3 * time.Second)
 				}
 
 			}
+			fmt.Println(state)
 
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
@@ -150,11 +152,11 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 			case "idle": //Skal ikke skje
 
 			case "move":
-				if elevatorState.POSITION == elevatorState.DIRECTION {
+				if elevatorState.POSITION == elevatorState.DESTINATION {
 					sendOutput(stopMotor, c_SM_output)
 					elevatorState.DIRECTION = 0
 
-					fmt.Printf("Arrived at floor %d", elevatorState.POSITION)
+					fmt.Printf("SM: Arrived at floor %d \n", elevatorState.POSITION)
 					sendOutput(openDoor, c_SM_output)
 					doorTimer.Reset(3 * time.Second)
 
@@ -168,14 +170,16 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 			}
 			sendState(elevatorState, c_SM_state)
+			fmt.Println(state)
 
 		case <-doorTimer.C:
-			fmt.Printf("Doortimer\n")
+			fmt.Printf("SM Doortimer\n")
 			switch state {
 			case "at_floor":
 				sendOutput(closeDoor, c_SM_output)
 				state = "idle"
 			}
+			fmt.Println(state)
 
 		}
 	}
