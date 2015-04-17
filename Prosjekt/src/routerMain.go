@@ -33,6 +33,7 @@ func main() {
 
 	c_SM_output := make(chan []byte) //stateMachine.Output
 	c_SM_state := make(chan []byte)  //stateMachine.Output
+	c_forloop := make(chan bool)
 
 	go router(my_ipaddr, c_io_button, c_SM_state, c_toNetwork, c_router_info)
 
@@ -44,9 +45,7 @@ func main() {
 
 	stateMachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
 
-	for{
-
-	}
+	<- c_forloop
 
 }
 
