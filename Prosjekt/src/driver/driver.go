@@ -234,7 +234,6 @@ func Check_floor(c_io_floor chan int) {
 	}
 }
 
-//Funker, men med variabel reaksjonstid.
 // Kan optimeres: Fra QueueManager kommer kun buttonLight output, og fra Statemachine kommer kun motor og doorlight
 func Send_output(c_output chan []byte, c_QM_output chan []byte) {
 	var decoded_output Output

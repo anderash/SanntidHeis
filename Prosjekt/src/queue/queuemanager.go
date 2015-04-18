@@ -298,7 +298,6 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
 }
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
-// Må teste om deleteOrder() funker
 func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	var last_info ElevInfo
