@@ -27,9 +27,9 @@ func main() {
 
 	c_router_info := make(chan []byte) //queue.ElevInfo
 
-//	c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
+	// c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
 	c_queMan_dest := make(chan int)      // int dest
-	c_queMan_output := make(chan []byte) //queue.Output
+	c_queMan_output := make(chan []byte) // This channel sets button lights in IO from queueManager
 
 	c_SM_output := make(chan []byte) //stateMachine.Output
 	c_SM_state := make(chan []byte)  //stateMachine.Output
@@ -37,7 +37,7 @@ func main() {
 
 	go router(my_ipaddr, c_fromNetwork, c_io_button, c_SM_state, c_toNetwork, c_router_info)
 
-	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate)
+	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output)
 
 	driver.InitDriver(c_io_button, c_io_floor, c_SM_output, c_queMan_output)
 

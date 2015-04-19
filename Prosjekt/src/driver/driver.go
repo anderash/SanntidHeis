@@ -87,7 +87,7 @@ var button_status = [N_FLOORS][3]int{
 
 var floor_status = [N_FLOORS]int{0, 0, 0, 0}
 
-func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_SM_output chan []byte, c_QM_output chan []byte) {
+func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -109,7 +109,7 @@ func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_SM_output 
 
 	go Check_floor(c_floorEvents)
 	go Check_buttons(c_buttonEvents)
-	go Send_output(c_SM_output, c_QM_output)
+	go Send_output(c_stateMach_output, c_queMan_output)
 
 	fmt.Printf("Driver initiated!\n")
 }
@@ -235,11 +235,11 @@ func Check_floor(c_io_floor chan int) {
 }
 
 // Kan optimeres: Fra QueueManager kommer kun buttonLight output, og fra Statemachine kommer kun motor og doorlight
-func Send_output(c_output chan []byte, c_QM_output chan []byte) {
+func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 	var decoded_output Output
 	for {
 		select {
-		case output := <-c_output:
+		case output := <-c_stateMach_output:
 			err3 := json.Unmarshal(output, &decoded_output)
 			if err3 != nil {
 				fmt.Println("error: ", err3)
@@ -262,12 +262,13 @@ func Send_output(c_output chan []byte, c_QM_output chan []byte) {
 				Set_motor_direction(decoded_output.OUTPUT_DIRECTION)
 			}
 
-		case l_output := <-c_QM_output:
+		case l_output := <-c_queMan_output:
 			err3 := json.Unmarshal(l_output, &decoded_output)
 			if err3 != nil {
 				fmt.Println("error: ", err3)
 			}
-
+			
+			// Kan korte ned noen unødvendige if'er her
 			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
 				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
 					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR {

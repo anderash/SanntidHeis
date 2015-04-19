@@ -61,6 +61,44 @@ type ElevInfo struct {
 	BUTTONFLOOR int
 }
 
+type Output struct {
+	OUTPUT_TYPE int
+	/*
+		LIGHT_OUTPUT = 0
+		MOTOR_OUTPUT = 1
+	*/
+
+	LIGHT_TYPE int
+	/*
+		BUTTON_LAMP = 0
+		FLOOR_INDICATOR = 1
+		DOOR_LAMP = 2
+	*/
+
+	BUTTON_TYPE int
+	/*
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
+	*/
+
+	FLOOR int
+
+	VALUE int
+	/*
+		on = 1
+		off = 0
+	*/
+
+	OUTPUT_DIRECTION int
+	/*
+		UP = 1
+		STOP = 0
+		DOWN = -1
+	*/
+}
+
 type ButtonLight struct{
 	BUTTON_TYPE int
 	BUTTONFLOOR int
@@ -78,7 +116,7 @@ var Active_elevators = make(map[string]Elevator)
 // IP-adressen til "denne" heisen
 var my_ipaddr string
 
-func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string) {
+func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++ {
@@ -88,7 +126,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_from_elevManager, c_peerListUpdate)
+	go processNewInfo(c_from_elevManager, c_peerListUpdate, c_queMan_output)
 	go checkQueue(c_to_statemachine)
 	fmt.Printf("Queuemanager operational\n")
 }
@@ -298,7 +336,7 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
 }
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
-func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
+func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	var last_info ElevInfo
 	for {
@@ -330,9 +368,28 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 				
 				if elev_info.F_BUTTONPRESS == true {
 					AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
+					//Tenner button lamp
+					button_output := Output{0,0,elev_info.BUTTON_TYPE,elev_info.BUTTONFLOOR,1,-1} 
+					encoded_output, err2 := json.Marshal(button_output)
+					if err2 != nil {
+						fmt.Println("QM button lamp JSON error: ", err2)
+					}
+					c_queMan_output <- encoded_output
+
 				}else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
 					fmt.Printf("queue: Order completed, deleting\n")
+					
+					// Slukker button lamps i aktuell etg
+					// Mulig dette bør gjøres på en annen måte
+					for i := 0; i < 3; i++ {
+						button_output := Output{0,0,i,elev_info.BUTTONFLOOR,0,-1} 
+						encoded_output, err2 := json.Marshal(button_output)
+						if err2 != nil {
+							fmt.Println("QM button lamp JSON error: ", err2)
+						}
+						c_queMan_output <- encoded_output
+					}
 				}
 
 				
@@ -371,8 +428,9 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 
 					PrintActiveElevators2()
 			*/
-		}
 
+		}
+	time.Sleep(10 * time.Millisecond)
 	}
 }
 
