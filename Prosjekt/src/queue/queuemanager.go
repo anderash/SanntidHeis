@@ -308,7 +308,7 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 			if err != nil {
 				fmt.Println("error: ", err)
 			}
-			if _, ok := Active_elevators[elev_info.IPADDR]; !ok {
+			if _, in_list := Active_elevators[elev_info.IPADDR]; !in_list {
 				AppendElevator(elev_info.IPADDR)
 			}
 			if elev_info.F_NEW_INFO && (elev_info != last_info) {
@@ -319,7 +319,6 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 
 				// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
 				if elev_info.IPADDR != my_ipaddr {					
-					temp_elev.DIRECTION = elev_info.DIRECTION
 					temp_elev.DESTINATION = elev_info.DESTINATION
 				}
 
@@ -391,17 +390,27 @@ func checkQueue(c_to_statemachine chan int) {
 			} else {
 				pos_floor = ((pos+1)+2)/2 - 1
 			}
-			for i := pos_floor; i < Active_elevators[my_ipaddr].DESTINATION; i++ {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+			for i := pos_floor; i < N_FLOORS; i++ {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i < Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					// time.Sleep(10 * time.Millisecond)
-
 					PrintActiveElevators2()
+					break
+
+				// Hvis heisen er på dest sjekker den alle etg ovenfor destinasjonen
+				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i > pos_floor{
+					dest = i
+					fmt.Println("queue: New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
+					PrintActiveElevators2()
+					break
 				}
 			}
 
@@ -412,17 +421,27 @@ func checkQueue(c_to_statemachine chan int) {
 			} else {
 				pos_floor = ((pos-1)+2)/2 - 1
 			}
-			for i := pos_floor; i >= Active_elevators[my_ipaddr].DESTINATION; i-- {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i != Active_elevators[my_ipaddr].DESTINATION {
+			for i := pos_floor; i >= 0; i-- {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i > Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					// time.Sleep(10 * time.Millisecond)
 					PrintActiveElevators2()
+					break
 
+				// Hvis heisen er på dest sjekker den alle etg nedenfor destinasjonen
+				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i < pos_floor{
+					dest = i
+					fmt.Println("queue: New destination floor: ", dest)
+					temp_elev := Active_elevators[my_ipaddr]
+					temp_elev.DESTINATION = dest
+					Active_elevators[my_ipaddr] = temp_elev
+					c_to_statemachine <- dest
+					PrintActiveElevators2()
+					break
 				}
 			}
 

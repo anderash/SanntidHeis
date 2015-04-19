@@ -83,7 +83,6 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 			break
 		}
 	}
-
 	sendOutput(stopMotor, c_SM_output)
 	// Floor indicator lamp
 	sendOutput(Output{0,1,-1, elevatorState.POSITION,1,-1}, c_SM_output)
@@ -116,10 +115,27 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 			case "move":
 
-			case "at_floor":
+			case "at_floor":		// Hvis man får en ny DEST før door timeren går ut.
 				<-doorTimer.C
 				sendOutput(closeDoor, c_SM_output)
-				state = "idle"
+				if elevatorState.DESTINATION > elevatorState.POSITION {
+					elevatorState.DIRECTION = 1
+					state = "move"
+					sendOutput(goUp, c_SM_output)
+					sendState(elevatorState, c_SM_state)
+				} else if elevatorState.DESTINATION < elevatorState.POSITION {
+					elevatorState.DIRECTION = -1
+					state = "move"
+					sendOutput(goDown, c_SM_output)
+					sendState(elevatorState, c_SM_state)
+				} else {
+					elevatorState.DIRECTION = 0
+					state = "at_floor"
+					sendOutput(openDoor, c_SM_output)
+					sendOutput(stopMotor, c_SM_output)
+					sendState(elevatorState, c_SM_state)
+					doorTimer.Reset(3 * time.Second)
+				}
 				fallthrough
 
 			case "idle":
@@ -149,7 +165,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
 			fmt.Println(elevatorState.POSITION)
-			sendOutput(Output{0,1,-1, elevatorState.POSITION,1,-1}, c_SM_output)
+			sendOutput(Output{0,1,-1, elevatorState.POSITION,1,-1}, c_SM_output)	// Tenner etg.-lys
 
 			switch state {
 			case "idle": //Skal ikke skje
@@ -157,13 +173,14 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 			case "move":
 				if elevatorState.POSITION == elevatorState.DESTINATION {
 					sendOutput(stopMotor, c_SM_output)
-					elevatorState.DIRECTION = 0
+
+					// elevatorState.DIRECTION = 0		// DETTE MÅ ENDRES. Skal bare sette DIR = 0 når man går i state idle.
 
 					fmt.Printf("SM: Arrived at floor %d \n", elevatorState.POSITION)
 					sendOutput(openDoor, c_SM_output)
 					doorTimer.Reset(3 * time.Second)
-
 					state = "at_floor"
+
 				} else {
 					state = "move"
 				}
@@ -181,6 +198,9 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 			case "at_floor":
 				sendOutput(closeDoor, c_SM_output)
 				state = "idle"
+				elevatorState.DIRECTION = 0
+				sendState(elevatorState, c_SM_state)
+
 			}
 			fmt.Println(state)
 
