@@ -379,7 +379,7 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 				}else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
 					fmt.Printf("queue: Order completed, deleting\n")
-					
+
 					// Slukker button lamps i aktuell etg
 					// Mulig dette bør gjøres på en annen måte
 					for i := 0; i < 3; i++ {
@@ -430,7 +430,6 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 			*/
 
 		}
-	time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -530,7 +529,7 @@ func checkQueue(c_to_statemachine chan int) {
 				}
 			}
 		}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	}
 
 }
