@@ -27,6 +27,7 @@ func main() {
 	c_fromNetwork := make(chan []byte) //queue.ElevInfo
 
 	c_router_info := make(chan []byte) //queue.ElevInfo
+	c_ack_order := make(chan []byte)   //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
 
 	// c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
 	c_queMan_dest := make(chan int)      // int dest
@@ -62,7 +63,11 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
 
-	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, 0, 0}
+	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, 0, 0}
+
+	acknowledgeTimer := time.NewTimer(2 * time.Second)
+	acknowledgeTimer.Stop()
+
 	for {
 		select {
 
@@ -76,6 +81,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.F_BUTTONPRESS = true
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
+			acknowledgeTimer.Reset(2 * time.Second)	// Deadline for acknowledge
 			sendElev(myElevator, c_router_info)
 			if buttonpress.BUTTON_TYPE != 2 { //Sender ikke på nett om det er en intern knapp
 				sendElev(myElevator, c_toNetwork)
@@ -99,6 +105,11 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 		case netInfo := <-c_fromNetwork:
 			c_router_info <- netInfo
 		// Send Alive-Ping
+
+		case <-acknowledgeTimer.C:
+			fmt.Printf("Acknowledge deadline reached. Processing order\n")
+			
+
 		case <-time.After(500 * time.Millisecond):
 			//			fmt.Printf("Router: Ping \n")
 			myElevator.F_NEW_INFO = false

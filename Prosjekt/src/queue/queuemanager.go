@@ -13,14 +13,14 @@ type Elevator struct {
 	IPADDR   string
 	POSITION int
 	/*
-		   Etg.			Pos. nr.	ElevInfo.POSITION
-		    1 ......... 0.........0
-		  	  ......... 1.........0/1
-			2 ......... 2.........1
-			  ......... 3.........1/2
-			3 ......... 4.........2
-			  ......... 5.........2/3
-			4 ......... 6.........3
+	   Etg.			Pos. nr.	ElevInfo.POSITION
+	    1 ......... 0.........0
+	  	  ......... 1.........0/1
+		2 ......... 2.........1
+		  ......... 3.........1/2
+		3 ......... 4.........2
+		  ......... 5.........2/3
+		4 ......... 6.........3
 	*/
 
 	DIRECTION int
@@ -38,11 +38,11 @@ type Elevator struct {
 
 	ORDER_MATRIX [][]int
 	/* 			   opp    	 ned    inne i heis			Settes til 1 ved en ordre
-	1.etg	[[  0         0         0]
-	2.etg 	 [  0         0         0]
-	3.etg 	 [  0         0         0]
-	4.etg	 [  0         0         0]]
-	osv.
+		1.etg	[[  0         0         0]
+		2.etg 	 [  0         0         0]
+		3.etg 	 [  0         0         0]
+		4.etg	 [  0         0         0]]
+		osv.
 	*/
 }
 
@@ -52,6 +52,7 @@ type ElevInfo struct {
 
 	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
+	F_ACK_ORDER bool
 
 	POSITION    int
 	DIRECTION   int
