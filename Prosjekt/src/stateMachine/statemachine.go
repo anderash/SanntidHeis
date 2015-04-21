@@ -21,10 +21,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -63,7 +63,6 @@ var elevatorState ElevState
 
 var state string
 
-
 func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte, c_SM_state chan []byte) {
 	// run := false
 	goDown := Output{1, -1, -1, -1, -1, -1}
@@ -85,7 +84,7 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 	}
 	sendOutput(stopMotor, c_SM_output)
 	// Floor indicator lamp
-	sendOutput(Output{0,1,-1, elevatorState.POSITION,1,-1}, c_SM_output)
+	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_SM_output)
 
 	elevatorState.DIRECTION = 0
 	sendState(elevatorState, c_SM_state)
@@ -115,10 +114,10 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 			case "move":
 
-			case "at_floor":		// Hvis man får en ny DEST før door timeren går ut.
+			case "at_floor": // Hvis man får en ny DEST før door timeren går ut.
 				<-doorTimer.C
 				sendOutput(closeDoor, c_SM_output)
-				if elevatorState.DESTINATION > elevatorState.POSITION {
+				/*if elevatorState.DESTINATION > elevatorState.POSITION {
 					elevatorState.DIRECTION = 1
 					state = "move"
 					sendOutput(goUp, c_SM_output)
@@ -135,7 +134,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 					sendOutput(stopMotor, c_SM_output)
 					sendState(elevatorState, c_SM_state)
 					doorTimer.Reset(3 * time.Second)
-				}
+				}*/
 				fallthrough
 
 			case "idle":
@@ -165,7 +164,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
 			fmt.Println(elevatorState.POSITION)
-			sendOutput(Output{0,1,-1, elevatorState.POSITION,1,-1}, c_SM_output)	// Tenner etg.-lys
+			sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_SM_output) // Tenner etg.-lys
 
 			switch state {
 			case "idle": //Skal ikke skje

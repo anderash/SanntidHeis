@@ -16,7 +16,7 @@ const (
 	MsgPort       = "20018"
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
-	deadTimeout   = 1 * time.Second
+	deadTimeout   = 2 * time.Second
 )
 
 type ElevInfo struct {
@@ -53,7 +53,7 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 		select {
 		case msg := <-c_toNetwork:
 			msgConn.Write(msg)
-//			fmt.Printf("Sendt message \n")
+			//			fmt.Printf("Sendt message \n")
 		}
 
 	}
@@ -92,7 +92,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	var info_package ElevInfo
 
 	for {
-		socket.SetReadDeadline(time.Now().Add(2 * aliveInterval))
+		socket.SetReadDeadline(time.Now().Add(4 * aliveInterval))
 		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
 
 		listHasChanges = false
@@ -128,7 +128,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 
 			json_err := json.Unmarshal(stripped_info, &info_package)
 			if json_err != nil {
-				fmt.Println("elevMan unMarshal JSON error: ", json_err)
+				fmt.Println("network unMarshal JSON error: ", json_err)
 			}
 			// Send info only if it has new info
 			// fmt.Printf("Ping from IP %s \n", info_package.IPADDR)
@@ -138,8 +138,9 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			}
 		}
 
-	}	
+	}
 }
+
 /*
 func udpBroadcast(c_toNetwork <-chan []byte) {
 

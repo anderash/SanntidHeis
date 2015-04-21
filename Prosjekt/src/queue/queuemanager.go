@@ -13,14 +13,14 @@ type Elevator struct {
 	IPADDR   string
 	POSITION int
 	/*
-	   Etg.			Pos. nr.	ElevInfo.POSITION
-	    1 ......... 0.........0
-	  	  ......... 1.........0/1
-		2 ......... 2.........1
-		  ......... 3.........1/2
-		3 ......... 4.........2
-		  ......... 5.........2/3
-		4 ......... 6.........3
+		   Etg.			Pos. nr.	ElevInfo.POSITION
+		    1 ......... 0.........0
+		  	  ......... 1.........0/1
+			2 ......... 2.........1
+			  ......... 3.........1/2
+			3 ......... 4.........2
+			  ......... 5.........2/3
+			4 ......... 6.........3
 	*/
 
 	DIRECTION int
@@ -77,10 +77,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -99,10 +99,10 @@ type Output struct {
 	*/
 }
 
-type ButtonLight struct{
+type ButtonLight struct {
 	BUTTON_TYPE int
 	BUTTONFLOOR int
-	VALUE int
+	VALUE       int
 }
 
 const (
@@ -116,7 +116,7 @@ var Active_elevators = make(map[string]Elevator)
 // IP-adressen til "denne" heisen
 var my_ipaddr string
 
-func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte) {
+func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++ {
@@ -126,7 +126,7 @@ func InitQueuemanager(ipaddr string, c_from_elevManager chan []byte, c_to_statem
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_from_elevManager, c_peerListUpdate, c_queMan_output)
+	go processNewInfo(c_router_info, c_peerListUpdate, c_queMan_output)
 	go checkQueue(c_to_statemachine)
 	fmt.Printf("Queuemanager operational\n")
 }
@@ -336,12 +336,12 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
 }
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
-func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
+func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	var last_info ElevInfo
 	for {
 		select {
-		case encoded_elev_info := <-c_from_elevManager:			
+		case encoded_elev_info := <-c_router_info:
 			err := json.Unmarshal(encoded_elev_info, &elev_info)
 			if err != nil {
 				fmt.Println("error: ", err)
@@ -352,11 +352,11 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 			if elev_info.F_NEW_INFO && (elev_info != last_info) {
 
 				temp_elev := Active_elevators[elev_info.IPADDR]
-				temp_elev.POSITION = elev_info.POSITION*2
+				temp_elev.POSITION = elev_info.POSITION * 2
 				temp_elev.DIRECTION = elev_info.DIRECTION
 
 				// Sørger for at egen heis bare oppdaterer dest gjennom checkQueue()
-				if elev_info.IPADDR != my_ipaddr {					
+				if elev_info.IPADDR != my_ipaddr {
 					temp_elev.DESTINATION = elev_info.DESTINATION
 				}
 
@@ -364,39 +364,29 @@ func processNewInfo(c_from_elevManager chan []byte, c_peerListUpdate chan string
 
 				//elev_info.POSITION har samme sytax som Destination
 				// Trenger kanskje ikke slette for hver gang vi får ny info?
-				
-				
+
 				if elev_info.F_BUTTONPRESS == true {
 					AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
 					//Tenner button lamp
-					button_output := Output{0,0,elev_info.BUTTON_TYPE,elev_info.BUTTONFLOOR,1,-1} 
-					encoded_output, err2 := json.Marshal(button_output)
-					if err2 != nil {
-						fmt.Println("QM button lamp JSON error: ", err2)
-					}
-					c_queMan_output <- encoded_output
+					button_output := Output{0, 0, elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR, 1, -1}
+					sendButtonLamp(button_output, c_queMan_output)
 
-				}else if elev_info.POSITION == elev_info.DESTINATION {
+				} else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
 					fmt.Printf("queue: Order completed, deleting\n")
 
 					// Slukker button lamps i aktuell etg
 					// Mulig dette bør gjøres på en annen måte
 					for i := 0; i < 3; i++ {
-						button_output := Output{0,0,i,elev_info.BUTTONFLOOR,0,-1} 
-						encoded_output, err2 := json.Marshal(button_output)
-						if err2 != nil {
-							fmt.Println("QM button lamp JSON error: ", err2)
-						}
-						c_queMan_output <- encoded_output
+						button_output := Output{0, 0, i, elev_info.POSITION, 0, -1}
+						sendButtonLamp(button_output, c_queMan_output)
 					}
 				}
 
-				
 				last_info = elev_info
 
 				PrintActiveElevators2()
-			}else{
+			} else {
 				last_info = elev_info
 				fmt.Printf("queue: No new info\n")
 			}
@@ -458,8 +448,8 @@ func checkQueue(c_to_statemachine chan int) {
 					PrintActiveElevators2()
 					break
 
-				// Hvis heisen er på dest sjekker den alle etg ovenfor destinasjonen
-				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i > pos_floor{
+					// Hvis heisen er på dest sjekker den alle etg ovenfor destinasjonen
+				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i > pos_floor {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
@@ -489,8 +479,8 @@ func checkQueue(c_to_statemachine chan int) {
 					PrintActiveElevators2()
 					break
 
-				// Hvis heisen er på dest sjekker den alle etg nedenfor destinasjonen
-				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i < pos_floor{
+					// Hvis heisen er på dest sjekker den alle etg nedenfor destinasjonen
+				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i < pos_floor {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
@@ -505,7 +495,7 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
 			pos_floor = (Active_elevators[my_ipaddr].POSITION+2)/2 - 1
 			for i := 0; i < (N_FLOORS); i++ {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 {//&& i != Active_elevators[my_ipaddr].DESTINATION {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
@@ -516,7 +506,7 @@ func checkQueue(c_to_statemachine chan int) {
 					PrintActiveElevators2()
 					break
 
-				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 {//&& i != Active_elevators[my_ipaddr].DESTINATION {
+				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					// fmt.Println("New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
@@ -529,11 +519,15 @@ func checkQueue(c_to_statemachine chan int) {
 				}
 			}
 		}
-	time.Sleep(5 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 
 }
 
-func sendButtonLamp() {
-	
+func sendButtonLamp(button_output Output, channel chan []byte) {
+	encoded_output, err2 := json.Marshal(button_output)
+	if err2 != nil {
+		fmt.Println("QM button lamp JSON error: ", err2)
+	}
+	channel <- encoded_output
 }

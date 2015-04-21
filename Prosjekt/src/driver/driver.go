@@ -21,10 +21,10 @@ type Input struct {
 	*/
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 	FLOOR int
 }
@@ -45,10 +45,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -267,7 +267,7 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 			if err3 != nil {
 				fmt.Println("error: ", err3)
 			}
-			
+
 			// Kan korte ned noen unødvendige if'er her
 			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
 				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {

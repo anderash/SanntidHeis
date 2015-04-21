@@ -17,6 +17,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	my_ipaddr := network.GetOwnIP()
+	fmt.Printf("Versjon 1, ip %s \n", my_ipaddr)
 
 	c_io_button := make(chan []byte) //driver.Input
 	c_io_floor := make(chan int)     // int floor
@@ -45,7 +46,7 @@ func main() {
 
 	stateMachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
 
-	<- c_forloop
+	<-c_forloop
 
 }
 
@@ -56,13 +57,12 @@ IO button channel: toNet(myIP, info), queue(myIP, info)
 IO floor channel
 
 */
-func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
+func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
 
 	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, 0, 0}
-
 	for {
 		select {
 
@@ -77,9 +77,9 @@ func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan [
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
 			sendElev(myElevator, c_router_info)
-			if (buttonpress.BUTTON_TYPE != 2){ 		//Sender ikke på nett om det er en intern knapp
+			if buttonpress.BUTTON_TYPE != 2 { //Sender ikke på nett om det er en intern knapp
 				sendElev(myElevator, c_toNetwork)
-			}			
+			}
 			myElevator.F_BUTTONPRESS = false
 
 		case e_state := <-c_SM_state:
@@ -96,11 +96,11 @@ func router(my_ipaddr string, c_fromNetwork <- chan []byte, c_io_button <-chan [
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
 
-		case netInfo := <- c_fromNetwork:
+		case netInfo := <-c_fromNetwork:
 			c_router_info <- netInfo
 		// Send Alive-Ping
 		case <-time.After(500 * time.Millisecond):
-//			fmt.Printf("Router: Ping \n")
+			//			fmt.Printf("Router: Ping \n")
 			myElevator.F_NEW_INFO = false
 			sendElev(myElevator, c_toNetwork)
 
@@ -116,18 +116,3 @@ func sendElev(info queue.ElevInfo, channel chan<- []byte) {
 	channel <- encoded_output
 }
 
-func sendSMOutput(output stateMachine.Output, channel chan<- []byte) {
-	encoded_output, err := json.Marshal(output)
-	if err != nil {
-		fmt.Println("SM JSON error: ", err)
-	}
-	channel <- encoded_output
-}
-
-func sendButtonpress(info driver.Input, channel chan<- []byte) {
-	encoded_output, err := json.Marshal(info)
-	if err != nil {
-		fmt.Println("SM JSON error: ", err)
-	}
-	channel <- encoded_output
-}
