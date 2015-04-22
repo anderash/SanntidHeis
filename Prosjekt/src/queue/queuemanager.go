@@ -117,7 +117,7 @@ var Active_elevators = make(map[string]Elevator)
 // IP-adressen til "denne" heisen
 var my_ipaddr string
 
-func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte) {
+func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++ {
@@ -127,7 +127,7 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
-	go processNewInfo(c_router_info, c_peerListUpdate, c_queMan_output)
+	go processNewInfo(c_router_info, c_peerListUpdate, c_queMan_output, c_queMan_ack_order)
 	go checkQueue(c_to_statemachine)
 	fmt.Printf("Queuemanager operational\n")
 }
@@ -231,7 +231,8 @@ func RemoveElevator(ipaddr string) {
 }
 
 // Bruker kostfunksjonen for å legge til ny ordre
-func AppendOrder(button_type int, button_floor int) {
+// Returnerer den optimale IP-adressen
+func AppendOrder(button_type int, button_floor int) string {
 	fmt.Printf("Appending order\n")
 	var button_dir string
 	var optimal_elevatorIP string
@@ -251,7 +252,7 @@ func AppendOrder(button_type int, button_floor int) {
 		// temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 
 		Active_elevators[my_ipaddr] = temp_elev
-		return
+		return nil
 	}
 
 	for ipaddr := range Active_elevators {
@@ -274,6 +275,7 @@ func AppendOrder(button_type int, button_floor int) {
 	temp_elev := Active_elevators[optimal_elevatorIP]
 	temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 	Active_elevators[optimal_elevatorIP] = temp_elev
+	return optimal_elevatorIP
 }
 
 func deleteOrder(ipaddr string, floor int) {
@@ -337,9 +339,13 @@ func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
 }
 
 // Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
-func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
+func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	var last_info ElevInfo
+
+	acknowledgeTimer := time.NewTimer(2 * time.Second)
+	acknowledgeTimer.Stop()
+
 	for {
 		select {
 		case encoded_elev_info := <-c_router_info:
@@ -366,11 +372,20 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 				//elev_info.POSITION har samme sytax som Destination
 				// Trenger kanskje ikke slette for hver gang vi får ny info?
 
-				if elev_info.F_BUTTONPRESS == true {
-					AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
+				if elev_info.F_BUTTONPRESS == true && elev_info.BUTTON_TYPE != 2{
+					if AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR) == my_ipaddr {
+						temp_elev = elev_info
+						temp_elev.F_ACK_ORDER == true
+						sendElev()
+
+					}
+
 					//Tenner button lamp
 					button_output := Output{0, 0, elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR, 1, -1}
 					sendButtonLamp(button_output, c_queMan_output)
+
+				} else if elev_info.F_BUTTONPRESS == true && elev_info.BUTTON_TYPE == 2{
+					AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
 
 				} else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
@@ -398,6 +413,10 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 
 		case peerUpdate := <-c_peerListUpdate:
 			RemoveElevator(peerUpdate)
+
+
+		case <-acknowledgeTimer.C:
+			fmt.Printf("Acknowledge deadline reached. Processing order\n")
 
 			// All info kommer fra Router:
 			/*
@@ -529,6 +548,14 @@ func sendButtonLamp(button_output Output, channel chan []byte) {
 	encoded_output, err2 := json.Marshal(button_output)
 	if err2 != nil {
 		fmt.Println("QM button lamp JSON error: ", err2)
+	}
+	channel <- encoded_output
+}
+
+func sendElev(info ElevInfo, channel chan<- []byte) {
+	encoded_output, err := json.Marshal(info)
+	if err != nil {
+		fmt.Println("SM JSON error: ", err)
 	}
 	channel <- encoded_output
 }
