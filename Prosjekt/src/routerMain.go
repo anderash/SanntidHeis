@@ -17,7 +17,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	my_ipaddr := network.GetOwnIP()
-	fmt.Printf("Versjon 1, ip %s \n", my_ipaddr)
+	fmt.Printf("Versjon 2, ip %s \n", my_ipaddr)
 
 	c_io_button := make(chan []byte) //driver.Input
 	c_io_floor := make(chan int)     // int floor
@@ -37,7 +37,7 @@ func main() {
 	c_stMachine_state := make(chan []byte)  //stateMachine.Output
 	c_forloop := make(chan bool)
 
-	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_toNetwork, c_router_info)
+	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_queMan_ackOrder, c_toNetwork, c_router_info)
 
 	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output, c_queMan_ackOrder)
 
@@ -58,16 +58,12 @@ IO button channel: toNet(myIP, info), queue(myIP, info)
 IO floor channel
 
 */
-func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_stMachine_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
+func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_stMachine_state <-chan []byte, c_queMan_ackOrder chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
-	var order queue.Elevinfo
 
 	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, 0, 0}
-
-	acknowledgeTimer := time.NewTimer(2 * time.Second)
-	acknowledgeTimer.Stop()
 
 	for {
 		select {
@@ -82,11 +78,11 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.F_BUTTONPRESS = true
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
-			acknowledgeTimer.Reset(2 * time.Second)	// Deadline for acknowledge
+	
 			sendElev(myElevator, c_router_info)
 			if buttonpress.BUTTON_TYPE != 2 { //Sender ikke på nett om det er en intern knapp
 				sendElev(myElevator, c_toNetwork)
-				acknowledgeTimer.Reset(250*time.Millisecond)
+				
 			}
 			myElevator.F_BUTTONPRESS = false
 

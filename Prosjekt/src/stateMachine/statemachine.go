@@ -67,6 +67,7 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMa
 	// run := false
 	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
+	openDoor := Output{0, 2, -1, -1, 1, -1}
 
 	elevatorState.POSITION = <-c_io_floor
 	if elevatorState.POSITION != 0 {
@@ -83,12 +84,13 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMa
 		}
 	}
 	sendOutput(stopMotor, c_stMachine_output)
+	sendOutput(openDoor, c_stMachine_output)
 	// Floor indicator lamp
 	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output)
 
 	elevatorState.DIRECTION = 0
 	sendState(elevatorState, c_stMachine_state)
-	state = "idle"
+	state = "at_floor"
 
 	fmt.Printf("Statemachine operational\n")
 	go statemachine(c_queMan_destination, c_io_floor, c_stMachine_output, c_stMachine_state)
@@ -104,7 +106,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 	closeDoor := Output{0, 2, -1, -1, 0, -1}
 
 	doorTimer := time.NewTimer(3 * time.Second)
-	doorTimer.Stop()
+	//doorTimer.Stop()
 
 	for {
 		select {
@@ -159,7 +161,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 				}
 
 			}
-			fmt.Println(state)
+			
 
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
@@ -187,7 +189,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 
 			}
 			sendState(elevatorState, c_stMachine_state)
-			fmt.Println(state)
+			
 
 		case <-doorTimer.C:
 			fmt.Printf("SM Doortimer\n")
@@ -199,7 +201,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 				sendState(elevatorState, c_stMachine_state)
 
 			}
-			fmt.Println(state)
+			
 
 		}
 	}

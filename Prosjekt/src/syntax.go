@@ -41,6 +41,7 @@ type ElevInfo struct {
 
 	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
+	F_ACK_ORDER bool
 
 	POSITION    int
 	DIRECTION   int
