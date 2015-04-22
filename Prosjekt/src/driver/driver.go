@@ -87,7 +87,7 @@ var button_status = [N_FLOORS][3]int{
 
 var floor_status = [N_FLOORS]int{0, 0, 0, 0}
 
-func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_stateMach_output chan []byte, c_queMan_output chan []byte) {
+func InitDriver(c_io_button chan []byte, c_io_floor chan int, c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -107,8 +107,8 @@ func InitDriver(c_buttonEvents chan []byte, c_floorEvents chan int, c_stateMach_
 	// Make sure motor is dead
 	Set_motor_direction(0)
 
-	go Check_floor(c_floorEvents)
-	go Check_buttons(c_buttonEvents)
+	go Check_floor(c_io_floor)
+	go Check_buttons(c_io_button)
 	go Send_output(c_stateMach_output, c_queMan_output)
 
 	fmt.Printf("Driver initiated!\n")
@@ -236,49 +236,49 @@ func Check_floor(c_io_floor chan int) {
 
 // Kan optimeres: Fra QueueManager kommer kun buttonLight output, og fra Statemachine kommer kun motor og doorlight
 func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
-	var decoded_output Output
+	var output Output
 	for {
 		select {
-		case output := <-c_stateMach_output:
-			err3 := json.Unmarshal(output, &decoded_output)
+		case enc_output := <-c_stateMach_output:
+			err3 := json.Unmarshal(enc_output, &output)
 			if err3 != nil {
 				fmt.Println("error: ", err3)
 			}
 
-			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
-				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
-					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR {
-						Set_floor_indicator(decoded_output.FLOOR)
-					} else if decoded_output.LIGHT_TYPE == DOOR_LAMP {
-						Set_door_open_lamp(decoded_output.VALUE)
+			if output.OUTPUT_TYPE == LIGHT_OUTPUT {
+				if output.BUTTON_TYPE == NOT_A_BUTTON {
+					if output.LIGHT_TYPE == FLOOR_INDICATOR {
+						Set_floor_indicator(output.FLOOR)
+					} else if output.LIGHT_TYPE == DOOR_LAMP {
+						Set_door_open_lamp(output.VALUE)
 					}
 
 				} else {
-					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
+					Set_button_lamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
 				}
 			}
 
-			if decoded_output.OUTPUT_TYPE == MOTOR_OUTPUT {
-				Set_motor_direction(decoded_output.OUTPUT_DIRECTION)
+			if output.OUTPUT_TYPE == MOTOR_OUTPUT {
+				Set_motor_direction(output.OUTPUT_DIRECTION)
 			}
 
-		case l_output := <-c_queMan_output:
-			err3 := json.Unmarshal(l_output, &decoded_output)
+		case enc_light_output := <-c_queMan_output:
+			err3 := json.Unmarshal(enc_light_output, &output)
 			if err3 != nil {
 				fmt.Println("error: ", err3)
 			}
 
 			// Kan korte ned noen unødvendige if'er her
-			if decoded_output.OUTPUT_TYPE == LIGHT_OUTPUT {
-				if decoded_output.BUTTON_TYPE == NOT_A_BUTTON {
-					if decoded_output.LIGHT_TYPE == FLOOR_INDICATOR {
-						Set_floor_indicator(decoded_output.FLOOR)
-					} else if decoded_output.LIGHT_TYPE == DOOR_LAMP {
-						Set_door_open_lamp(decoded_output.VALUE)
+			if output.OUTPUT_TYPE == LIGHT_OUTPUT {
+				if output.BUTTON_TYPE == NOT_A_BUTTON {
+					if output.LIGHT_TYPE == FLOOR_INDICATOR {
+						Set_floor_indicator(output.FLOOR)
+					} else if output.LIGHT_TYPE == DOOR_LAMP {
+						Set_door_open_lamp(output.VALUE)
 					}
 
 				} else {
-					Set_button_lamp(decoded_output.BUTTON_TYPE, decoded_output.FLOOR, decoded_output.VALUE)
+					Set_button_lamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
 				}
 			}
 		}

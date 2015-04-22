@@ -63,14 +63,14 @@ var elevatorState ElevState
 
 var state string
 
-func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte, c_SM_state chan []byte) {
+func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachine_output chan []byte, c_stMachine_state chan []byte) {
 	// run := false
 	goDown := Output{1, -1, -1, -1, -1, -1}
 	stopMotor := Output{1, -1, -1, -1, -1, 0}
 
 	elevatorState.POSITION = <-c_io_floor
 	if elevatorState.POSITION != 0 {
-		sendOutput(goDown, c_SM_output)
+		sendOutput(goDown, c_stMachine_output)
 	}
 	elevatorState.DIRECTION = -1
 	elevatorState.DESTINATION = 0
@@ -82,19 +82,19 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_o
 			break
 		}
 	}
-	sendOutput(stopMotor, c_SM_output)
+	sendOutput(stopMotor, c_stMachine_output)
 	// Floor indicator lamp
-	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_SM_output)
+	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output)
 
 	elevatorState.DIRECTION = 0
-	sendState(elevatorState, c_SM_state)
+	sendState(elevatorState, c_stMachine_state)
 	state = "idle"
 
 	fmt.Printf("Statemachine operational\n")
-	go statemachine(c_queMan_destination, c_io_floor, c_SM_output, c_SM_state)
+	go statemachine(c_queMan_destination, c_io_floor, c_stMachine_output, c_stMachine_state)
 }
 
-func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_output chan []byte, c_SM_state chan []byte) {
+func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachine_output chan []byte, c_stMachine_state chan []byte) {
 
 	goUp := Output{1, -1, -1, -1, -1, 1}
 	goDown := Output{1, -1, -1, -1, -1, -1}
@@ -116,23 +116,23 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 
 			case "at_floor": // Hvis man får en ny DEST før door timeren går ut.
 				<-doorTimer.C
-				sendOutput(closeDoor, c_SM_output)
+				sendOutput(closeDoor, c_stMachine_output)
 				/*if elevatorState.DESTINATION > elevatorState.POSITION {
 					elevatorState.DIRECTION = 1
 					state = "move"
-					sendOutput(goUp, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(goUp, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 				} else if elevatorState.DESTINATION < elevatorState.POSITION {
 					elevatorState.DIRECTION = -1
 					state = "move"
-					sendOutput(goDown, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(goDown, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 				} else {
 					elevatorState.DIRECTION = 0
 					state = "at_floor"
-					sendOutput(openDoor, c_SM_output)
-					sendOutput(stopMotor, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(openDoor, c_stMachine_output)
+					sendOutput(stopMotor, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 					doorTimer.Reset(3 * time.Second)
 				}*/
 				fallthrough
@@ -141,20 +141,20 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				if elevatorState.DESTINATION > elevatorState.POSITION {
 					elevatorState.DIRECTION = 1
 					state = "move"
-					sendOutput(goUp, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(goUp, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 
 				} else if elevatorState.DESTINATION < elevatorState.POSITION {
 					elevatorState.DIRECTION = -1
 					state = "move"
-					sendOutput(goDown, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(goDown, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 				} else {
 					elevatorState.DIRECTION = 0
 					state = "at_floor"
-					sendOutput(openDoor, c_SM_output)
-					sendOutput(stopMotor, c_SM_output)
-					sendState(elevatorState, c_SM_state)
+					sendOutput(openDoor, c_stMachine_output)
+					sendOutput(stopMotor, c_stMachine_output)
+					sendState(elevatorState, c_stMachine_state)
 					doorTimer.Reset(3 * time.Second)
 				}
 
@@ -164,19 +164,17 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
 			fmt.Println(elevatorState.POSITION)
-			sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_SM_output) // Tenner etg.-lys
+			sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output) // Tenner etg.-lys
 
 			switch state {
 			case "idle": //Skal ikke skje
 
 			case "move":
 				if elevatorState.POSITION == elevatorState.DESTINATION {
-					sendOutput(stopMotor, c_SM_output)
-
-					// elevatorState.DIRECTION = 0		// DETTE MÅ ENDRES. Skal bare sette DIR = 0 når man går i state idle.
+					sendOutput(stopMotor, c_stMachine_output)
 
 					fmt.Printf("SM: Arrived at floor %d \n", elevatorState.POSITION)
-					sendOutput(openDoor, c_SM_output)
+					sendOutput(openDoor, c_stMachine_output)
 					doorTimer.Reset(3 * time.Second)
 					state = "at_floor"
 
@@ -188,17 +186,17 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 				state = "idle" //Ikke tenkt noe mer over dette
 
 			}
-			sendState(elevatorState, c_SM_state)
+			sendState(elevatorState, c_stMachine_state)
 			fmt.Println(state)
 
 		case <-doorTimer.C:
 			fmt.Printf("SM Doortimer\n")
 			switch state {
 			case "at_floor":
-				sendOutput(closeDoor, c_SM_output)
+				sendOutput(closeDoor, c_stMachine_output)
 				state = "idle"
 				elevatorState.DIRECTION = 0
-				sendState(elevatorState, c_SM_state)
+				sendState(elevatorState, c_stMachine_state)
 
 			}
 			fmt.Println(state)
@@ -207,12 +205,12 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_SM_outpu
 	}
 }
 
-func sendOutput(output Output, c_SM_output chan []byte) {
+func sendOutput(output Output, c_stMachine_output chan []byte) {
 	encoded_output, err := json.Marshal(output)
 	if err != nil {
 		fmt.Println("SM JSON error: ", err)
 	}
-	c_SM_output <- encoded_output
+	c_stMachine_output <- encoded_output
 }
 
 func sendState(elevatorState ElevState, channel chan []byte) {

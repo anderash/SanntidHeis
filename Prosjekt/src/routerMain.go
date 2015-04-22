@@ -27,25 +27,25 @@ func main() {
 	c_fromNetwork := make(chan []byte) //queue.ElevInfo
 
 	c_router_info := make(chan []byte) //queue.ElevInfo
-	c_ack_order := make(chan []byte)   //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
-
+	
 	// c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
 	c_queMan_dest := make(chan int)      // int dest
 	c_queMan_output := make(chan []byte) // This channel sets button lights in IO from queueManager
+	c_queMan_ackOrder := make(chan []byte)   //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
 
-	c_SM_output := make(chan []byte) //stateMachine.Output
-	c_SM_state := make(chan []byte)  //stateMachine.Output
+	c_stMachine_output := make(chan []byte) //stateMachine.Output
+	c_stMachine_state := make(chan []byte)  //stateMachine.Output
 	c_forloop := make(chan bool)
 
-	go router(my_ipaddr, c_fromNetwork, c_io_button, c_SM_state, c_toNetwork, c_router_info)
+	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_toNetwork, c_router_info)
 
-	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output)
+	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output, c_queMan_ackOrder)
 
-	driver.InitDriver(c_io_button, c_io_floor, c_SM_output, c_queMan_output)
+	driver.InitDriver(c_io_button, c_io_floor, c_stMachine_output, c_queMan_output)
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
 
-	stateMachine.InitStatemachine(c_queMan_dest, c_io_floor, c_SM_output, c_SM_state)
+	stateMachine.InitStatemachine(c_queMan_dest, c_io_floor, c_stMachine_output, c_stMachine_state)
 
 	<-c_forloop
 
@@ -58,10 +58,11 @@ IO button channel: toNet(myIP, info), queue(myIP, info)
 IO floor channel
 
 */
-func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_SM_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
+func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_stMachine_state <-chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
+	var order queue.Elevinfo
 
 	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, 0, 0}
 
@@ -71,9 +72,9 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	for {
 		select {
 
-		case e_button_input := <-c_io_button:
+		case enc_button_input := <-c_io_button:
 			fmt.Printf("Router: ButtonInput \n")
-			json_err := json.Unmarshal(e_button_input, &buttonpress)
+			json_err := json.Unmarshal(enc_button_input, &buttonpress)
 			if json_err != nil {
 				fmt.Println("router unMarshal JSON error: ", json_err)
 			}
@@ -85,12 +86,13 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			sendElev(myElevator, c_router_info)
 			if buttonpress.BUTTON_TYPE != 2 { //Sender ikke på nett om det er en intern knapp
 				sendElev(myElevator, c_toNetwork)
+				acknowledgeTimer.Reset(250*time.Millisecond)
 			}
 			myElevator.F_BUTTONPRESS = false
 
-		case e_state := <-c_SM_state:
+		case enc_state := <-c_stMachine_state:
 			fmt.Printf("Router: StateInput \n")
-			json_err := json.Unmarshal(e_state, &state)
+			json_err := json.Unmarshal(enc_state, &state)
 			if json_err != nil {
 				fmt.Println("router unMarshal JSON error: ", json_err)
 			}
@@ -106,8 +108,8 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			c_router_info <- netInfo
 		// Send Alive-Ping
 
-		case <-acknowledgeTimer.C:
-			fmt.Printf("Acknowledge deadline reached. Processing order\n")
+		case enc_order := <- c_queMan_ackOrder:
+			c_toNetwork <- enc_order
 			
 
 		case <-time.After(500 * time.Millisecond):
