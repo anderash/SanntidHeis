@@ -54,7 +54,6 @@ func UDPNetwork(c_toNetwork <-chan []byte, c_fromNetwork chan<- []byte, c_peerLi
 		select {
 		case msg := <-c_toNetwork:
 			msgConn.Write(msg)
-			//			fmt.Printf("Sendt message \n")
 		}
 
 	}
@@ -122,7 +121,6 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 				peerList = append(peerList, key)
 			}
 			sort.Strings(peerList)
-			//c_peerListUpdate <- peerList
 		}
 		if err == nil {
 			stripped_info := buffer[:nrBytes]
@@ -131,8 +129,6 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			if json_err != nil {
 				fmt.Println("network unMarshal JSON error: ", json_err)
 			}
-			// Send info only if it has new info
-			// fmt.Printf("Ping from IP %s \n", info_package.IPADDR)
 			if info_package.F_NEW_INFO {
 				fmt.Printf("New info arrived from IP %s \n", info_package.IPADDR)
 				c_fromNetwork <- stripped_info
@@ -141,74 +137,3 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 
 	}
 }
-
-/*
-func udpBroadcast(c_toNetwork <-chan []byte) {
-
-	raddr, err1 := ResolveUDPAddr("udp4", Baddr+":"+OwnPort)
-
-	if err1 != nil {
-		fmt.Printf("Problemer med resolveUDPaddr")
-		os.Exit(1)
-	}
-	fmt.Printf("Trying to dialUDP\n")
-	socket, err2 := DialUDP("udp4", nil, raddr)
-
-	if err2 != nil {
-		fmt.Printf("Problemer med Dial\n")
-		os.Exit(2)
-	}
-
-	for {
-		buffer := <-c_toNetwork
-		fmt.Printf("Trying to Write\n")
-		_, err3 := socket.Write(buffer)
-		//fmt.Printf("skrev %i bytes", n)
-
-		if err3 != nil {
-			fmt.Printf("Problemer med Write")
-			os.Exit(3)
-		}
-	}
-
-}
-*/
-
-/*
-func externalIP() (string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return "", err
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			ip = ip.To4()
-			if ip == nil {
-				continue // not an ipv4 address
-			}
-			return ip.String(), nil
-		}
-	}
-	return "", errors.New("are you connected to the network?")
-}
-*/
