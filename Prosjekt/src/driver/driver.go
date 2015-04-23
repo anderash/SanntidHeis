@@ -17,10 +17,10 @@ type Input struct {
 	*/
 	BUTTON_TYPE int
 	/*
-			BUTTON_CALL_UP = 0
-		    BUTTON_CALL_DOWN = 1
-		    BUTTON_COMMAND = 2
-		    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 	FLOOR int
 }
@@ -41,10 +41,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-			BUTTON_CALL_UP = 0
-		    BUTTON_CALL_DOWN = 1
-		    BUTTON_COMMAND = 2
-		    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -133,8 +133,6 @@ func getButtonSignal() (int, int) {
 				if button_status[i][j] == 0 {
 					button_status[i][j] = 1
 					return i, j
-					// i tilsvarer etage (0 = 1. etg, 1 = 2. etg. osv)
-					// j tilsvarer type knapp. (0 = opp-knapp, 1 = ned-knapp, 2 = knapp inne i heis)
 				}
 			} else {
 				button_status[i][j] = 0
@@ -142,8 +140,7 @@ func getButtonSignal() (int, int) {
 		}
 	}
 	return -1, -1
-	//Dette returneres hvis ingen knapp detektert
-
+	// Return value if no button aktivatet
 }
 
 
@@ -155,7 +152,6 @@ func setButtonLamp(button int, floor int, value int) {
 	}
 }
 
-// Funker
 func setDoorOpenLamp(value int) {
 	if value == 1 {
 		Io_set_bit(LIGHT_DOOR_OPEN)
@@ -164,9 +160,8 @@ func setDoorOpenLamp(value int) {
 	}
 }
 
-// Funker
 func setFloorIndicator(floor int) {
-	// Passer her på at ett lys alltid er tent
+	// Making sure allways one floor light is lit
 	if floor&0x02 == 0x02 {
 		Io_set_bit(LIGHT_FLOOR_IND1)
 	} else {
@@ -180,7 +175,6 @@ func setFloorIndicator(floor int) {
 
 }
 
-// Funker
 func setMotorDirection(direction int) {
 	if direction == 0 {
 		Io_write_analog(MOTOR, 0)
@@ -194,7 +188,6 @@ func setMotorDirection(direction int) {
 
 }
 
-// Funker.
 func checkButtons(c_input chan []byte) {
 
 	for {
