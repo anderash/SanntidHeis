@@ -127,15 +127,16 @@ func getFloorSignal() int {
 
 // Denne vil ikke få med seg knappetrykk dersom noen holder en knapp inne i en lavere etg. Må fikses!
 func getButtonSignal() (int, int) {
-	for i := 0; i < N_FLOORS; i++ {
-		for j := 0; j < 3; j++ {
-			if (button_matrix[i][j] != -1) && (Io_read_bit(button_matrix[i][j]) == 1) {
-				if button_status[i][j] == 0 {
-					button_status[i][j] = 1
-					return i, j
+	for floor := 0; floor < N_FLOORS; floor++ {
+		for button := 0; button < 3; button++ {
+			if (button_matrix[floor][button] != -1) && (Io_read_bit(button_matrix[floor][button]) == 1) {
+				if button_status[floor][button] == 0 {
+					button_status[floor][button] = 1
+					return floor, button
+					// 
 				}
 			} else {
-				button_status[i][j] = 0
+				button_status[floor][button] = 0
 			}
 		}
 	}
