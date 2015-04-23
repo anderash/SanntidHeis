@@ -94,29 +94,28 @@ func InitDriver(c_io_button chan []byte, c_io_floor chan int, c_stateMach_output
 	// Zero all floor button lamps
 	for i := 0; i < N_FLOORS; i++ {
 		if i != 0 {
-			Set_button_lamp(BUTTON_CALL_DOWN, i, 0)
+			setButtonLamp(BUTTON_CALL_DOWN, i, 0)
 		}
 		if i != (N_FLOORS - 1) {
-			Set_button_lamp(BUTTON_CALL_UP, i, 0)
+			setButtonLamp(BUTTON_CALL_UP, i, 0)
 		}
-		Set_button_lamp(BUTTON_COMMAND, i, 0)
+		setButtonLamp(BUTTON_COMMAND, i, 0)
 	}
 
 	// Zero door open lamp
-	Set_door_open_lamp(0)
+	setDoorOpenLamp(0)
 
 	// Make sure motor is dead
-	Set_motor_direction(0)
+	setMotorDirection(0)
 
-	go Check_floor(c_io_floor)
-	go Check_buttons(c_io_button)
+	go checkFloor(c_io_floor)
+	go checkButtons(c_io_button)
 	go Send_output(c_stateMach_output, c_queMan_output)
 
 	fmt.Printf("Driver initiated!\n")
 }
 
-// Funker
-func get_floor_signal() int {
+func getFloorSignal() int {
 	if Io_read_bit(SENSOR_FLOOR1) == 1 {
 		return 0
 	}
@@ -133,7 +132,7 @@ func get_floor_signal() int {
 }
 
 // Denne vil ikke få med seg knappetrykk dersom noen holder en knapp inne i en lavere etg. Må fikses!
-func Get_button_signal() (int, int) {
+func getButtonSignal() (int, int) {
 	for i := 0; i < N_FLOORS; i++ {
 		for j := 0; j < 3; j++ {
 			if (button_matrix[i][j] != -1) && (Io_read_bit(button_matrix[i][j]) == 1) {
@@ -153,8 +152,8 @@ func Get_button_signal() (int, int) {
 
 }
 
-// Funker
-func Set_button_lamp(button int, floor int, value int) {
+
+func setButtonLamp(button int, floor int, value int) {
 	if value == 1 {
 		Io_set_bit(buttonlight_matrix[floor][button])
 	} else {
@@ -163,7 +162,7 @@ func Set_button_lamp(button int, floor int, value int) {
 }
 
 // Funker
-func Set_door_open_lamp(value int) {
+func setDoorOpenLamp(value int) {
 	if value == 1 {
 		Io_set_bit(LIGHT_DOOR_OPEN)
 	} else {
@@ -172,7 +171,7 @@ func Set_door_open_lamp(value int) {
 }
 
 // Funker
-func Set_floor_indicator(floor int) {
+func setFloorIndicator(floor int) {
 	// Passer her på at ett lys alltid er tent
 	if floor&0x02 == 0x02 {
 		Io_set_bit(LIGHT_FLOOR_IND1)
@@ -188,7 +187,7 @@ func Set_floor_indicator(floor int) {
 }
 
 // Funker
-func Set_motor_direction(direction int) {
+func setMotorDirection(direction int) {
 	if direction == 0 {
 		Io_write_analog(MOTOR, 0)
 	} else if direction > 0 {
@@ -202,10 +201,10 @@ func Set_motor_direction(direction int) {
 }
 
 // Funker.
-func Check_buttons(c_input chan []byte) {
+func checkButtons(c_input chan []byte) {
 
 	for {
-		if floor, button_type := Get_button_signal(); floor != -1 {
+		if floor, button_type := getButtonSignal(); floor != -1 {
 			input := Input{BUTTON, button_type, floor}
 			encoded_input, err := json.Marshal(input)
 			if err != nil {
@@ -218,14 +217,14 @@ func Check_buttons(c_input chan []byte) {
 	}
 }
 
-func Check_floor(c_io_floor chan int) {
-	floor := get_floor_signal()
+func checkFloor(c_io_floor chan int) {
+	floor := getFloorSignal()
 	prevFloor := -1
 
 	c_io_floor <- floor
 
 	for {
-		floor = get_floor_signal()
+		floor = getFloorSignal()
 		if floor != prevFloor && floor != -1 {
 			c_io_floor <- floor
 		}
@@ -235,7 +234,6 @@ func Check_floor(c_io_floor chan int) {
 	}
 }
 
-// Kan optimeres: Fra QueueManager kommer kun buttonLight output, og fra Statemachine kommer kun motor og doorlight
 func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 	var output Output
 	for {
@@ -247,24 +245,20 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 			}
 
 			if output.OUTPUT_TYPE == LIGHT_OUTPUT {
-				if output.BUTTON_TYPE == NOT_A_BUTTON {
-					if output.LIGHT_TYPE == FLOOR_INDICATOR {
-						Set_floor_indicator(output.FLOOR)
-					} else if output.LIGHT_TYPE == DOOR_LAMP {
-						if get_floor_signal() == -1 {
-							fmt.Printf("Invalid position. Cannot open door. Call maintenance")
-							os.Exit(2)
-						}
-						Set_door_open_lamp(output.VALUE)
+				if output.LIGHT_TYPE == FLOOR_INDICATOR {
+					setFloorIndicator(output.FLOOR)
+				} else if output.LIGHT_TYPE == DOOR_LAMP {
+					if getFloorSignal() == -1 {
+						fmt.Printf("Invalid position. Cannot open door. Call maintenance")
+						os.Exit(2)
 					}
-
-				} else {
-					Set_button_lamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
+					setDoorOpenLamp(output.VALUE)
 				}
+
 			}
 
 			if output.OUTPUT_TYPE == MOTOR_OUTPUT {
-				Set_motor_direction(output.OUTPUT_DIRECTION)
+				setMotorDirection(output.OUTPUT_DIRECTION)
 			}
 
 		case enc_light_output := <-c_queMan_output:
@@ -272,20 +266,8 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 			if err3 != nil {
 				fmt.Println("Driver_l JSON error: ", err3)
 			}
-
-			// Kan korte ned noen unødvendige if'er her
-			if output.OUTPUT_TYPE == LIGHT_OUTPUT {
-				if output.BUTTON_TYPE == NOT_A_BUTTON {
-					if output.LIGHT_TYPE == FLOOR_INDICATOR {
-						Set_floor_indicator(output.FLOOR)
-					} else if output.LIGHT_TYPE == DOOR_LAMP {
-						Set_door_open_lamp(output.VALUE)
-					}
-
-				} else {
-					Set_button_lamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
-				}
-			}
+			setButtonLamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
+				
 		}
 	}
 

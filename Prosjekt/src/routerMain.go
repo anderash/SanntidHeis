@@ -84,7 +84,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
 	
 			sendElev(myElevator, c_router_info)
-			if buttonpress.BUTTON_TYPE != 2 { //Sender ikke på nett om det er en intern knapp
+			if buttonpress.BUTTON_TYPE != 2 { 	// Does not broadcast if internal button
 				sendElev(myElevator, c_toNetwork)
 				
 			}
@@ -125,7 +125,6 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 				fmt.Printf("Encountered an error, crashing program. Call maintnaince \n")
 				os.Exit(1)
 			}
-
 		}
 	}
 }
