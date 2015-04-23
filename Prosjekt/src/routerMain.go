@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"runtime"
 	"time"
+	"os"
 )
 
 func main() {
@@ -63,6 +64,9 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	var state stateMachine.ElevState
 	var buttonpress driver.Input
 
+	program_timer := time.NewTimer(10 * time.Second)
+	//doorTimer.Stop()
+
 	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, 0, 0}
 
 	for {
@@ -99,19 +103,28 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.DESTINATION = state.DESTINATION
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
+			program_timer.Reset(10*time.Seconds)
 
 		case netInfo := <-c_fromNetwork:
 			c_router_info <- netInfo
-		// Send Alive-Ping
+
 
 		case enc_order := <- c_queMan_ackOrder:
 			c_toNetwork <- enc_order
 			
 
 		case <-time.After(500 * time.Millisecond):
-			//			fmt.Printf("Router: Ping \n")
 			myElevator.F_NEW_INFO = false
 			sendElev(myElevator, c_toNetwork)
+
+		case <- program_timer.C:
+			if myElevator.DIRECTION == 0{
+				fmt.Printf("10 sek since last state-update, in idle\n")
+				program_timer.Reset(10*time.Seconds)
+			}else{
+				fmt.Printf("Encountered an error, crashing program. Call maintnaince \n")
+				os.Exit(1)
+			}
 
 		}
 	}
