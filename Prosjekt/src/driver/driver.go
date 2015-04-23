@@ -1,10 +1,5 @@
 package driver
 
-/*
-#cgo LDFLAGS: -lcomedi -lm
-#cgo CFLAGS: -std=c99
-#include "io.h"
-*/
 import "C"
 
 import (
@@ -68,7 +63,6 @@ type Output struct {
 	*/
 }
 
-// Denne bør helst endres til const (hvis mulig)
 var button_matrix = [N_FLOORS][3]int{
 	{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
 	{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
