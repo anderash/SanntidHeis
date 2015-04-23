@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"os/exit"
+	"os"
 )
 
 type Input struct {

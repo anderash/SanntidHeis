@@ -116,6 +116,8 @@ var Active_elevators = make(map[string]Elevator)
 
 // IP-adressen til "denne" heisen
 var my_ipaddr string
+var internal_orders []byte
+var order_file *os.File
 
 func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) {
 	my_ipaddr = ipaddr
@@ -123,6 +125,25 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	for i := 0; i < N_FLOORS; i++ {
 		my_ordermatrix[i] = []int{0, 0, 0}
 	}
+	
+	enc_file, f_err := os.OpenFile("internal_orders.dat", os.O_RDWR, 0777)	
+	if f_err != nil{
+		fmt.Println("Created order_file\n")
+		enc_file, _ = os.Create("internal_orders.dat")
+	}
+	order_file = enc_file
+	internal_orders = make([]byte,N_FLOORS)
+	_, r_err := order_file.ReadAt(internal_orders, 0)
+	fmt.Println(internal_orders)
+	if r_err != nil {
+		fmt.Println("read order_file error: ", r_err)
+	}
+	for i := 0; i < N_FLOORS; i++ {		
+		my_ordermatrix[i][0] = int(internal_orders[i])
+		my_ordermatrix[i][1] = int(internal_orders[i])
+		my_ordermatrix[i][2] = int(internal_orders[i])
+	}
+
 	new_elevator := Elevator{my_ipaddr, 0, 0, 0, my_ordermatrix}
 	Active_elevators[my_ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
@@ -249,9 +270,16 @@ func AppendOrder(button_type int, button_floor int) string {
 		for i := 0; i < 3; i++ {
 			temp_elev.ORDER_MATRIX[button_floor][i] = 1
 		}
+		internal_orders[button_floor] = byte(1)
+
+		_, w_err := order_file.WriteAt(internal_orders,0)		
+		if w_err != nil{
+			fmt.Println("write error:", w_err)
+		}
 		// temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 
 		Active_elevators[my_ipaddr] = temp_elev
+
 		return "nil"
 	}
 
@@ -285,6 +313,12 @@ func deleteOrder(ipaddr string, floor int) {
 	}
 	Active_elevators[ipaddr] = temp_elev
 
+	internal_orders[floor] = byte(0)
+	fmt.Println (internal_orders)
+	_, w_err := order_file.WriteAt(internal_orders,0)		
+	if w_err != nil{
+		fmt.Println("write error:", w_err)
+	}
 }
 
 func CostFunction(elevator_ip string, order_floor int, button_dir string) int {

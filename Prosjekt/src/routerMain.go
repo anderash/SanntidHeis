@@ -103,7 +103,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.DESTINATION = state.DESTINATION
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
-			program_timer.Reset(10*time.Seconds)
+			program_timer.Reset(10*time.Second)
 
 		case netInfo := <-c_fromNetwork:
 			c_router_info <- netInfo
@@ -120,7 +120,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 		case <- program_timer.C:
 			if myElevator.DIRECTION == 0{
 				fmt.Printf("10 sek since last state-update, in idle\n")
-				program_timer.Reset(10*time.Seconds)
+				program_timer.Reset(10*time.Second)
 			}else{
 				fmt.Printf("Encountered an error, crashing program. Call maintnaince \n")
 				os.Exit(1)
