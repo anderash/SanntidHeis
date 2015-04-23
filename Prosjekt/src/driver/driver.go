@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"os/exit"
 )
 
 type Input struct {
@@ -250,6 +251,10 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 					if output.LIGHT_TYPE == FLOOR_INDICATOR {
 						Set_floor_indicator(output.FLOOR)
 					} else if output.LIGHT_TYPE == DOOR_LAMP {
+						if get_floor_signal() == -1 {
+							fmt.Printf("Invalid position. Cannot open door. Call maintenance")
+							os.Exit(2)
+						}
 						Set_door_open_lamp(output.VALUE)
 					}
 
