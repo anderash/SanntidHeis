@@ -243,7 +243,7 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 		case enc_output := <-c_stateMach_output:
 			err3 := json.Unmarshal(enc_output, &output)
 			if err3 != nil {
-				fmt.Println("error: ", err3)
+				fmt.Println("Driver_o JSON error: ", err3)
 			}
 
 			if output.OUTPUT_TYPE == LIGHT_OUTPUT {
@@ -270,7 +270,7 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 		case enc_light_output := <-c_queMan_output:
 			err3 := json.Unmarshal(enc_light_output, &output)
 			if err3 != nil {
-				fmt.Println("error: ", err3)
+				fmt.Println("Driver_l JSON error: ", err3)
 			}
 
 			// Kan korte ned noen unødvendige if'er her
