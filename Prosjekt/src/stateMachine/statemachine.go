@@ -21,10 +21,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -148,7 +148,6 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 				}
 
 			}
-			
 
 		case elevatorState.POSITION = <-c_io_floor:
 			fmt.Printf("SM: Floorinput \n")
@@ -177,7 +176,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 
 			}
 			sendState(elevatorState, c_stMachine_state)
-			
+
 		case <-doorTimer.C:
 			fmt.Printf("SM Doortimer\n")
 			switch state {

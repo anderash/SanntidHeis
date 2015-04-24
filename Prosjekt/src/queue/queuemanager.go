@@ -13,14 +13,14 @@ type Elevator struct {
 	IPADDR   string
 	POSITION int
 	/*
-	   Etg.			Pos. nr.	ElevInfo.POSITION
-	    1 ......... 0.........0
-	  	  ......... 1.........0/1
-		2 ......... 2.........1
-		  ......... 3.........1/2
-		3 ......... 4.........2
-		  ......... 5.........2/3
-		4 ......... 6.........3
+		   Etg.			Pos. nr.	ElevInfo.POSITION
+		    1 ......... 0.........0
+		  	  ......... 1.........0/1
+			2 ......... 2.........1
+			  ......... 3.........1/2
+			3 ......... 4.........2
+			  ......... 5.........2/3
+			4 ......... 6.........3
 	*/
 
 	DIRECTION int
@@ -38,11 +38,11 @@ type Elevator struct {
 
 	ORDER_MATRIX [][]int
 	/* 			   opp    	 ned    inne i heis			Settes til 1 ved en ordre
-		1.etg	[[  0         0         0]
-		2.etg 	 [  0         0         0]
-		3.etg 	 [  0         0         0]
-		4.etg	 [  0         0         0]]
-		osv.
+	1.etg	[[  0         0         0]
+	2.etg 	 [  0         0         0]
+	3.etg 	 [  0         0         0]
+	4.etg	 [  0         0         0]]
+	osv.
 	*/
 }
 
@@ -52,12 +52,12 @@ type ElevInfo struct {
 
 	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
-	F_ACK_ORDER bool
+	F_ACK_ORDER   bool
 
 	POSITION    int
 	DIRECTION   int
 	DESTINATION int
-	MOVING		bool
+	MOVING      bool
 
 	BUTTON_TYPE int
 	BUTTONFLOOR int
@@ -126,14 +126,14 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	for i := 0; i < N_FLOORS; i++ {
 		my_ordermatrix[i] = []int{0, 0, 0}
 	}
-	
-	enc_file, f_err := os.OpenFile("internal_orders.dat", os.O_RDWR, 0777)	
-	if f_err != nil{
+
+	enc_file, f_err := os.OpenFile("internal_orders.dat", os.O_RDWR, 0777)
+	if f_err != nil {
 		fmt.Println("Created order_file\n")
 		enc_file, _ = os.Create("internal_orders.dat")
 	}
 	order_file = enc_file
-	internal_orders = make([]byte,N_FLOORS)
+	internal_orders = make([]byte, N_FLOORS)
 	_, r_err := order_file.ReadAt(internal_orders, 0)
 	fmt.Println(internal_orders)
 	if r_err != nil {
@@ -144,7 +144,7 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 		my_ordermatrix[i][1] = int(internal_orders[i])
 		my_ordermatrix[i][2] = int(internal_orders[i])
 		if int(internal_orders[i]) == 1 {
-			button_output := Output{0,0,2,i,1,-1}
+			button_output := Output{0, 0, 2, i, 1, -1}
 			sendButtonLamp(button_output, c_queMan_output)
 		}
 	}
@@ -173,9 +173,9 @@ func AppendElevator(elev_info ElevInfo) {
 	for i := 0; i < N_FLOORS; i++ {
 		new_ordermatrix[i] = []int{0, 0, 0}
 	}
-	new_elevator := Elevator{elev_info:IPADDR, elev_info.POSITION, elev_info.DIRECTION, elev_info.DESTINATION, new_ordermatrix}
-	Active_elevators[ipaddr] = new_elevator
-	fmt.Println("Elevator", Active_elevators[ipaddr].IPADDR, "online\n")
+	new_elevator := Elevator{elev_info.IPADDR, elev_info.POSITION * 2, elev_info.DIRECTION, elev_info.DESTINATION, new_ordermatrix}
+	Active_elevators[elev_info.IPADDR] = new_elevator
+	fmt.Println("Elevator", Active_elevators[elev_info.IPADDR].IPADDR, "online\n")
 }
 
 func PrintActiveElevators() {
@@ -203,7 +203,7 @@ func PrintActiveElevators2() {
 	// orderstr := ""
 	for key, elev := range Active_elevators {
 		ipstr += "Elevator: " + key + "\t"
-		infostr += "Position: " + strconv.Itoa(elev.POSITION/2) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
+		infostr += "Position: " + strconv.Itoa(elev.POSITION) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
 
 		tempstr := "     "
 		for i := 0; i < 3; i++ {
@@ -277,8 +277,8 @@ func AppendOrder(button_type int, button_floor int) string {
 		}
 		internal_orders[button_floor] = byte(1)
 
-		_, w_err := order_file.WriteAt(internal_orders,0)		
-		if w_err != nil{
+		_, w_err := order_file.WriteAt(internal_orders, 0)
+		if w_err != nil {
 			fmt.Println("write error:", w_err)
 		}
 		// temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
@@ -319,9 +319,9 @@ func deleteOrder(ipaddr string, floor int) {
 	Active_elevators[ipaddr] = temp_elev
 
 	internal_orders[floor] = byte(0)
-	fmt.Println (internal_orders)
-	_, w_err := order_file.WriteAt(internal_orders,0)		
-	if w_err != nil{
+	fmt.Println(internal_orders)
+	_, w_err := order_file.WriteAt(internal_orders, 0)
+	if w_err != nil {
 		fmt.Println("write error:", w_err)
 	}
 }
@@ -404,13 +404,13 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 					temp_elev.POSITION = elev_info.POSITION*2 + elev_info.DIRECTION
 					if temp_elev.POSITION == -1 {
 						temp_elev.POSITION = 0
-					}else if temp_elev.POSITION == N_FLOORS*2-1{
-						temp_elev.POSITION = elev_info.POSITION*2
+					} else if temp_elev.POSITION == N_FLOORS*2-1 {
+						temp_elev.POSITION = elev_info.POSITION * 2
 					}
-				}else{
-					temp_elev.POSITION = elev_info.POSITION*2
+				} else {
+					temp_elev.POSITION = elev_info.POSITION * 2
 				}
-				
+
 				temp_elev.DIRECTION = elev_info.DIRECTION
 				if elev_info.IPADDR != my_ipaddr {
 					temp_elev.DESTINATION = elev_info.DESTINATION
@@ -430,9 +430,8 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 							button_order.IPADDR = optimal_ip
 						}
 
-
 					case elev_info.IPADDR != my_ipaddr:
-						if optimal_ip == my_ipaddr{
+						if optimal_ip == my_ipaddr {
 							button_order = elev_info
 							button_order.F_ACK_ORDER = true
 							sendElev(button_order, c_queMan_ack_order)
@@ -440,11 +439,10 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 						}
 					}
 
-				}else if elev_info.F_BUTTONPRESS && elev_info.F_ACK_ORDER{
+				} else if elev_info.F_BUTTONPRESS && elev_info.F_ACK_ORDER {
 					acknowledgeTimer.Stop()
 
-
-				}else if elev_info.POSITION == elev_info.DESTINATION {
+				} else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
 					fmt.Printf("queue: Order completed, deleting\n")
 
@@ -454,7 +452,7 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 						button_output := Output{0, 0, i, elev_info.POSITION, 0, -1}
 						sendButtonLamp(button_output, c_queMan_output)
 					}
-								
+
 				}
 
 				last_info = elev_info
@@ -470,7 +468,6 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 
 		case peerUpdate := <-c_peerListUpdate:
 			RemoveElevator(peerUpdate)
-
 
 		case <-acknowledgeTimer.C:
 			if button_order.IPADDR == my_ipaddr {
@@ -493,11 +490,11 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
 			pos := Active_elevators[my_ipaddr].POSITION
 			if Active_elevators[my_ipaddr].POSITION%2 == 0 {
-				pos_floor = pos/2
+				pos_floor = pos / 2
 			} else {
 				pos_floor = (pos+1)/2 - 1
 			}
-			for i := pos_floor+1; i < N_FLOORS; i++ {
+			for i := pos_floor + 1; i < N_FLOORS; i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i < Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
@@ -524,11 +521,11 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == -1:
 			pos := Active_elevators[my_ipaddr].POSITION
 			if Active_elevators[my_ipaddr].POSITION%2 == 0 {
-				pos_floor = pos/2
+				pos_floor = pos / 2
 			} else {
-				pos_floor = (pos+1)/2
+				pos_floor = (pos + 1) / 2
 			}
-			for i := pos_floor-1; i >= 0; i-- {
+			for i := pos_floor - 1; i >= 0; i-- {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i > Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
@@ -553,7 +550,7 @@ func checkQueue(c_to_statemachine chan int) {
 			}
 
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
-			pos_floor = Active_elevators[my_ipaddr].POSITION/2
+			pos_floor = Active_elevators[my_ipaddr].POSITION / 2
 			for i := 0; i < (N_FLOORS); i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
@@ -598,5 +595,5 @@ func sendElev(info ElevInfo, channel chan<- []byte) {
 		fmt.Println("SM JSON error: ", err)
 	}
 	channel <- encoded_output
-	
+
 }

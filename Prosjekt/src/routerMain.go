@@ -8,9 +8,9 @@ import (
 	"./stateMachine"
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"time"
-	"os"
 )
 
 func main() {
@@ -28,11 +28,11 @@ func main() {
 	c_fromNetwork := make(chan []byte) //queue.ElevInfo
 
 	c_router_info := make(chan []byte) //queue.ElevInfo
-	
+
 	// c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
-	c_queMan_dest := make(chan int)      // int dest
-	c_queMan_output := make(chan []byte) // This channel sets button lights in IO from queueManager
-	c_queMan_ackOrder := make(chan []byte)   //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
+	c_queMan_dest := make(chan int)        // int dest
+	c_queMan_output := make(chan []byte)   // This channel sets button lights in IO from queueManager
+	c_queMan_ackOrder := make(chan []byte) //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
 
 	c_stMachine_output := make(chan []byte) //stateMachine.Output
 	c_stMachine_state := make(chan []byte)  //stateMachine.Output
@@ -41,7 +41,7 @@ func main() {
 	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_queMan_ackOrder, c_toNetwork, c_router_info)
 
 	driver.InitDriver(c_io_button, c_io_floor, c_stMachine_output, c_queMan_output)
-	
+
 	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output, c_queMan_ackOrder)
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
@@ -82,11 +82,11 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.F_BUTTONPRESS = true
 			myElevator.BUTTON_TYPE = buttonpress.BUTTON_TYPE
 			myElevator.BUTTONFLOOR = buttonpress.FLOOR
-	
+
 			sendElev(myElevator, c_router_info)
-			if buttonpress.BUTTON_TYPE != 2 { 	// Does not broadcast if internal button
+			if buttonpress.BUTTON_TYPE != 2 { // Does not broadcast if internal button
 				sendElev(myElevator, c_toNetwork)
-				
+
 			}
 			myElevator.F_BUTTONPRESS = false
 
@@ -104,25 +104,23 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.MOVING = state.MOVING
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
-			program_timer.Reset(10*time.Second)
+			program_timer.Reset(10 * time.Second)
 
 		case netInfo := <-c_fromNetwork:
 			c_router_info <- netInfo
 
-
-		case enc_order := <- c_queMan_ackOrder:
+		case enc_order := <-c_queMan_ackOrder:
 			c_toNetwork <- enc_order
-			
 
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(250 * time.Millisecond):
 			myElevator.F_NEW_INFO = false
 			sendElev(myElevator, c_toNetwork)
 
-		case <- program_timer.C:
-			if myElevator.DIRECTION == 0{
+		case <-program_timer.C:
+			if myElevator.DIRECTION == 0 {
 				fmt.Printf("10 sek since last state-update, in idle\n")
-				program_timer.Reset(10*time.Second)
-			}else{
+				program_timer.Reset(10 * time.Second)
+			} else {
 				fmt.Printf("Encountered an error, crashing program. Call maintnaince \n")
 				os.Exit(1)
 			}
@@ -137,4 +135,3 @@ func sendElev(info queue.ElevInfo, channel chan<- []byte) {
 	}
 	channel <- encoded_output
 }
-

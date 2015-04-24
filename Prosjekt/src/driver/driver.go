@@ -5,8 +5,8 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 	"os"
+	"time"
 )
 
 type Input struct {
@@ -17,10 +17,10 @@ type Input struct {
 	*/
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 	FLOOR int
 }
@@ -41,10 +41,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-		BUTTON_CALL_UP = 0
-	    BUTTON_CALL_DOWN = 1
-	    BUTTON_COMMAND = 2
-	    NO_BUTTON = -1
+			BUTTON_CALL_UP = 0
+		    BUTTON_CALL_DOWN = 1
+		    BUTTON_COMMAND = 2
+		    NO_BUTTON = -1
 	*/
 
 	FLOOR int
@@ -133,7 +133,7 @@ func getButtonSignal() (int, int) {
 				if button_status[floor][button] == 0 {
 					button_status[floor][button] = 1
 					return floor, button
-					// 
+					//
 				}
 			} else {
 				button_status[floor][button] = 0
@@ -143,7 +143,6 @@ func getButtonSignal() (int, int) {
 	return -1, -1
 	// Return value if no button aktivatet
 }
-
 
 func setButtonLamp(button int, floor int, value int) {
 	if value == 1 {
@@ -255,7 +254,7 @@ func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
 				fmt.Println("Driver_l JSON error: ", err3)
 			}
 			setButtonLamp(output.BUTTON_TYPE, output.FLOOR, output.VALUE)
-				
+
 		}
 	}
 

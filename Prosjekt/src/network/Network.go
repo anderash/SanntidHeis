@@ -15,7 +15,7 @@ const (
 	OwnPort       = "20004"
 	MsgPort       = "20004"
 	Baddr         = "129.241.187.255"
-	aliveInterval = 500 * time.Millisecond
+	aliveInterval = 250 * time.Millisecond
 	deadTimeout   = 2 * time.Second
 )
 
@@ -25,11 +25,12 @@ type ElevInfo struct {
 
 	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
-	F_ACK_ORDER bool
+	F_ACK_ORDER   bool
 
 	POSITION    int
 	DIRECTION   int
 	DESTINATION int
+	MOVING      bool
 
 	ButtonType  int
 	ButtonFloor int
@@ -92,7 +93,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 	var info_package ElevInfo
 
 	for {
-		socket.SetReadDeadline(time.Now().Add(4 * aliveInterval))
+		socket.SetReadDeadline(time.Now().Add(8 * aliveInterval))
 		nrBytes, remoteADDR, err := socket.ReadFromUDP(buffer)
 
 		listHasChanges = false
