@@ -193,7 +193,7 @@ func checkButtons(c_input chan []byte) {
 
 	for {
 		if floor, button_type := getButtonSignal(); floor != -1 {
-			input := Input{BUTTON, button_type, floor}
+			input := Input{0, button_type, floor}
 			encoded_input, err := json.Marshal(input)
 			if err != nil {
 				fmt.Println("error: ", err)
