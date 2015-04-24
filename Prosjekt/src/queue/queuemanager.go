@@ -598,4 +598,5 @@ func sendElev(info ElevInfo, channel chan<- []byte) {
 		fmt.Println("SM JSON error: ", err)
 	}
 	channel <- encoded_output
+	
 }
