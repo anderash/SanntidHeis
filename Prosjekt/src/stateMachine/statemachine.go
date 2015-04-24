@@ -57,6 +57,7 @@ type ElevState struct {
 		3. etg = 2
 		4. etg = 3
 	*/
+	MOVING bool
 }
 
 var elevatorState ElevState
@@ -89,6 +90,7 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMa
 	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output)
 
 	elevatorState.DIRECTION = 0
+	elevatorState.MOVING = false
 	sendState(elevatorState, c_stMachine_state)
 	state = "at_floor"
 
@@ -124,17 +126,20 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 			case "idle":
 				if elevatorState.DESTINATION > elevatorState.POSITION {
 					elevatorState.DIRECTION = 1
+					elevatorState.MOVING = true
 					state = "move"
 					sendOutput(goUp, c_stMachine_output)
 					sendState(elevatorState, c_stMachine_state)
 
 				} else if elevatorState.DESTINATION < elevatorState.POSITION {
 					elevatorState.DIRECTION = -1
+					elevatorState.MOVING = true
 					state = "move"
 					sendOutput(goDown, c_stMachine_output)
 					sendState(elevatorState, c_stMachine_state)
 				} else {
 					elevatorState.DIRECTION = 0
+					elevatorState.MOVING = false
 					state = "at_floor"
 					sendOutput(openDoor, c_stMachine_output)
 					sendOutput(stopMotor, c_stMachine_output)
@@ -159,13 +164,16 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 					sendOutput(openDoor, c_stMachine_output)
 					doorTimer.Reset(3 * time.Second)
 					state = "at_floor"
+					elevatorState.MOVING = false
 
 				} else {
 					state = "move"
+					elevatorState.MOVING = true
 				}
 
 			case "at_floor":
 				state = "idle"
+				elevatorState.MOVING = false
 
 			}
 			sendState(elevatorState, c_stMachine_state)
@@ -177,6 +185,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 				sendOutput(closeDoor, c_stMachine_output)
 				state = "idle"
 				elevatorState.DIRECTION = 0
+				elevatorState.MOVING = false
 				sendState(elevatorState, c_stMachine_state)
 
 			}

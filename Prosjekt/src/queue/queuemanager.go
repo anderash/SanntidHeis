@@ -57,6 +57,7 @@ type ElevInfo struct {
 	POSITION    int
 	DIRECTION   int
 	DESTINATION int
+	MOVING		bool
 
 	BUTTON_TYPE int
 	BUTTONFLOOR int
@@ -143,7 +144,7 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 		my_ordermatrix[i][1] = int(internal_orders[i])
 		my_ordermatrix[i][2] = int(internal_orders[i])
 		if int(internal_orders[i]) == 1 {
-			button_output = Output{0,0,2,i,1,-1}
+			button_output := Output{0,0,2,i,1,-1}
 			sendButtonLamp(button_output, c_queMan_output)
 		}
 	}
@@ -398,7 +399,18 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 			if elev_info.F_NEW_INFO && (elev_info != last_info) {
 
 				temp_elev := Active_elevators[elev_info.IPADDR]
-				temp_elev.POSITION = elev_info.POSITION * 2
+
+				if elev_info.MOVING {
+					temp_elev.POSITION = elev_info.POSITION*2 + elev_info.DIRECTION
+					if temp_elev.POSITION == -1 {
+						temp_elev.POSITION = 0
+					}else if temp_elev.POSITION == N_FLOORS*2-1{
+						temp_elev.POSITION = elev_info.POSITION*2
+					}
+				}else{
+					temp_elev.POSITION = elev_info.POSITION*2
+				}
+				
 				temp_elev.DIRECTION = elev_info.DIRECTION
 				if elev_info.IPADDR != my_ipaddr {
 					temp_elev.DESTINATION = elev_info.DESTINATION

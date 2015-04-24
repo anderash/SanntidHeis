@@ -40,9 +40,9 @@ func main() {
 
 	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_queMan_ackOrder, c_toNetwork, c_router_info)
 
-	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output, c_queMan_ackOrder)
-
 	driver.InitDriver(c_io_button, c_io_floor, c_stMachine_output, c_queMan_output)
+	
+	queue.InitQueuemanager(my_ipaddr, c_router_info, c_queMan_dest, c_peerUpdate, c_queMan_output, c_queMan_ackOrder)
 
 	go network.UDPNetwork(c_toNetwork, c_fromNetwork, c_peerUpdate)
 
@@ -67,7 +67,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	program_timer := time.NewTimer(10 * time.Second)
 	//doorTimer.Stop()
 
-	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, 0, 0}
+	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, false, 0, 0}
 
 	for {
 		select {
@@ -101,6 +101,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.POSITION = state.POSITION
 			myElevator.DIRECTION = state.DIRECTION
 			myElevator.DESTINATION = state.DESTINATION
+			myElevator.MOVING = state.MOVING
 			sendElev(myElevator, c_router_info)
 			sendElev(myElevator, c_toNetwork)
 			program_timer.Reset(10*time.Second)

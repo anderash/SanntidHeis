@@ -129,7 +129,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 			if json_err != nil {
 				fmt.Println("network unMarshal JSON error: ", json_err)
 			}
-			if info_package.F_NEW_INFO {
+			if info_package.F_NEW_INFO || listHasChanges {
 				fmt.Printf("New info arrived from IP %s \n", info_package.IPADDR)
 				c_fromNetwork <- stripped_info
 			}
