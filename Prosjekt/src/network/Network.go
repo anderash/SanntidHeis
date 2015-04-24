@@ -12,8 +12,13 @@ import (
 )
 
 const (
+<<<<<<< HEAD
 	OwnPort       = "20018"
 	MsgPort       = "20018"
+=======
+	OwnPort       = "20004"
+	MsgPort       = "20004"
+>>>>>>> cab4c30ea1d6b11aaa3f6c2e419fb92f26703a87
 	Baddr         = "129.241.187.255"
 	aliveInterval = 500 * time.Millisecond
 	deadTimeout   = 2 * time.Second
@@ -108,7 +113,7 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 		}
 
 		for key, value := range lastSeen {
-			if time.Now().Sub(value) > deadTimeout {
+			if time.Now().Sub(value) > deadTimeout && key != localIP{
 				delete(lastSeen, key)
 				fmt.Printf("Timeout on elev %s \n", key)
 				c_peerListUpdate <- key
@@ -130,8 +135,10 @@ func udpListen(c_fromNetwork chan<- []byte, c_peerListUpdate chan<- string) {
 				fmt.Println("network unMarshal JSON error: ", json_err)
 			}
 			if info_package.F_NEW_INFO || listHasChanges {
-				fmt.Printf("New info arrived from IP %s \n", info_package.IPADDR)
-				c_fromNetwork <- stripped_info
+				if info_package.IPADDR != localIP{
+					fmt.Printf("New info arrived from IP %s \n", info_package.IPADDR)
+					c_fromNetwork <- stripped_info
+				}
 			}
 		}
 
