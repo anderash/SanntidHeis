@@ -18,7 +18,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	my_ipaddr := network.GetOwnIP()
-	fmt.Printf("Versjon 2, ip %s \n", my_ipaddr)
+	fmt.Printf("Versjon 3, ip %s \n", my_ipaddr)
 
 	c_io_button := make(chan []byte) //driver.Input
 	c_io_floor := make(chan int)     // int floor

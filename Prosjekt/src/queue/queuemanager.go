@@ -239,16 +239,23 @@ func PrintActiveElevators2() {
 }
 
 func RemoveElevator(ipaddr string) {
-	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
-	delete(Active_elevators, ipaddr)
-	for floor := 0; floor < N_FLOORS; floor++ {
-		for button_type := 0; button_type < 2; button_type++ {
-			if orders_to_dist[floor][button_type] == 1 {
-				AppendOrder(button_type, floor)
+
+	if doomed_elevator, in_list := Active_elevators[ipaddr]; in_list{
+		orders_to_dist := doomed_elevator.ORDER_MATRIX
+		fmt.Println(orders_to_dist)
+		delete(Active_elevators, ipaddr)
+		for floor := 0; floor < N_FLOORS; floor++ {
+			for button_type := 0; button_type < 2; button_type++ {
+				if orders_to_dist[floor][button_type] == 1 {
+					AppendOrder(button_type, floor)
+				}
 			}
 		}
+		fmt.Println("Deleted", ipaddr, "\n")	
+	}else{
+		fmt.Printf("The elevator was not in list\n")
 	}
-	fmt.Println("Deleted", ipaddr, "\n")
+	
 }
 
 // Bruker kostfunksjonen for å legge til ny ordre
@@ -453,6 +460,7 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 			}
 
 		case peerUpdate := <-c_peerListUpdate:
+			fmt.Println(peerUpdate)
 			RemoveElevator(peerUpdate)
 
 
