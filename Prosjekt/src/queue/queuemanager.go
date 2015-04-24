@@ -138,10 +138,14 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	if r_err != nil {
 		fmt.Println("read order_file error: ", r_err)
 	}
-	for i := 0; i < N_FLOORS; i++ {		
+	for i := 0; i < N_FLOORS; i++ {
 		my_ordermatrix[i][0] = int(internal_orders[i])
 		my_ordermatrix[i][1] = int(internal_orders[i])
 		my_ordermatrix[i][2] = int(internal_orders[i])
+		if int(internal_orders[i]) == 1 {
+			button_output = Output{0,0,2,i,1,-1}
+			sendButtonLamp(button_output, c_queMan_output)
+		}
 	}
 
 	new_elevator := Elevator{my_ipaddr, 0, 0, 0, my_ordermatrix}
@@ -239,23 +243,16 @@ func PrintActiveElevators2() {
 }
 
 func RemoveElevator(ipaddr string) {
-
-	if doomed_elevator, in_list := Active_elevators[ipaddr]; in_list{
-		orders_to_dist := doomed_elevator.ORDER_MATRIX
-		fmt.Println(orders_to_dist)
-		delete(Active_elevators, ipaddr)
-		for floor := 0; floor < N_FLOORS; floor++ {
-			for button_type := 0; button_type < 2; button_type++ {
-				if orders_to_dist[floor][button_type] == 1 {
-					AppendOrder(button_type, floor)
-				}
+	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
+	delete(Active_elevators, ipaddr)
+	for floor := 0; floor < N_FLOORS; floor++ {
+		for button_type := 0; button_type < 2; button_type++ {
+			if orders_to_dist[floor][button_type] == 1 {
+				AppendOrder(button_type, floor)
 			}
 		}
-		fmt.Println("Deleted", ipaddr, "\n")	
-	}else{
-		fmt.Printf("The elevator was not in list\n")
 	}
-	
+	fmt.Println("Deleted", ipaddr, "\n")
 }
 
 // Bruker kostfunksjonen for å legge til ny ordre
@@ -460,7 +457,6 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 			}
 
 		case peerUpdate := <-c_peerListUpdate:
-			fmt.Println(peerUpdate)
 			RemoveElevator(peerUpdate)
 
 
