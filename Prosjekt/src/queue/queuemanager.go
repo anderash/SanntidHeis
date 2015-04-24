@@ -13,7 +13,7 @@ type Elevator struct {
 	IPADDR   string
 	POSITION int
 	/*
-		   Etg.			Pos. nr.	ElevInfo.POSITION
+		   Etg.		Pos. nr.	ElevInfo.POSITION
 		    1 ......... 0.........0
 		  	  ......... 1.........0/1
 			2 ......... 2.........1
@@ -37,7 +37,7 @@ type Elevator struct {
 	*/
 
 	ORDER_MATRIX [][]int
-	/* 			   opp    	 ned    inne i heis			Settes til 1 ved en ordre
+	/* 			   opp    	 ned    inne i heis
 	1.etg	[[  0         0         0]
 	2.etg 	 [  0         0         0]
 	3.etg 	 [  0         0         0]
@@ -111,10 +111,8 @@ const (
 	N_POSITIONS = N_FLOORS + (N_FLOORS - 1)
 )
 
-// Indexen i map'en er ip-adressen til den aktuelle heisen
 var Active_elevators = make(map[string]Elevator)
 
-// IP-adressen til "denne" heisen
 var my_ipaddr string
 var internal_orders []byte
 var order_file *os.File
@@ -123,15 +121,18 @@ var acknowledgeTimer *time.Timer
 func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) {
 	my_ipaddr = ipaddr
 	my_ordermatrix := make([][]int, N_FLOORS)
+
 	for i := 0; i < N_FLOORS; i++ {
 		my_ordermatrix[i] = []int{0, 0, 0}
 	}
 
 	enc_file, f_err := os.OpenFile("internal_orders.dat", os.O_RDWR, 0777)
+
 	if f_err != nil {
 		fmt.Println("Created order_file\n")
 		enc_file, _ = os.Create("internal_orders.dat")
 	}
+
 	order_file = enc_file
 	internal_orders = make([]byte, N_FLOORS)
 	_, r_err := order_file.ReadAt(internal_orders, 0)
@@ -139,6 +140,7 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	if r_err != nil {
 		fmt.Println("read order_file error: ", r_err)
 	}
+
 	for i := 0; i < N_FLOORS; i++ {
 		my_ordermatrix[i][0] = int(internal_orders[i])
 		my_ordermatrix[i][1] = int(internal_orders[i])
@@ -158,69 +160,22 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	fmt.Printf("Queuemanager operational\n")
 }
 
-
 func appendElevator(elev_info ElevInfo) {
 	new_ordermatrix := make([][]int, N_FLOORS)
+
 	for i := 0; i < N_FLOORS; i++ {
 		new_ordermatrix[i] = []int{0, 0, 0}
 	}
+
 	new_elevator := Elevator{elev_info.IPADDR, elev_info.POSITION * 2, elev_info.DIRECTION, elev_info.DESTINATION, new_ordermatrix}
 	Active_elevators[elev_info.IPADDR] = new_elevator
 	fmt.Println("Elevator", Active_elevators[elev_info.IPADDR].IPADDR, "online\n")
 }
 
-
-func printActiveElevators() {
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
-	ipstr, infostr, orderstr, orderstr1, orderstr2, orderstr3, orderstr4 := "", "", "", "", "", "", ""
-	// infostr := ""
-	// orderstr := ""
-	for key, elev := range Active_elevators {
-		ipstr += "Elevator: " + key + "\t"
-		infostr += "Position: " + strconv.Itoa(elev.POSITION) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
-
-		tempstr := "     "
-		for i := 0; i < 3; i++ {
-			tempstr += strconv.Itoa(elev.ORDER_MATRIX[3][i]) + "     "
-		}
-		orderstr1 += "Floor: 3" + tempstr + "\t"
-
-		tempstr = "     "
-		for i := 0; i < 3; i++ {
-			tempstr += strconv.Itoa(elev.ORDER_MATRIX[2][i]) + "     "
-		}
-		orderstr2 += "Floor: 2" + tempstr + "\t"
-
-		tempstr = "     "
-		for i := 0; i < 3; i++ {
-			tempstr += strconv.Itoa(elev.ORDER_MATRIX[1][i]) + "     "
-		}
-		orderstr3 += "Floor: 1" + tempstr + "\t"
-
-		tempstr = "     "
-		for i := 0; i < 3; i++ {
-			tempstr += strconv.Itoa(elev.ORDER_MATRIX[0][i]) + "     "
-		}
-		orderstr4 += "Floor: 0" + tempstr + "\t"
-
-		orderstr += "Orders:     OPP   NED   INNE" + "\t"
-	}
-	fmt.Fprintln(w, ipstr)
-	fmt.Fprintln(w, infostr)
-	fmt.Fprintln(w, orderstr)
-	fmt.Fprintln(w, orderstr1)
-	fmt.Fprintln(w, orderstr2)
-	fmt.Fprintln(w, orderstr3)
-	fmt.Fprintln(w, orderstr4)
-	fmt.Printf("*********************************************************************************************\n")
-	w.Flush()
-	fmt.Printf("*********************************************************************************************\n")
-}
-
 func removeElevator(ipaddr string) {
 	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
 	delete(Active_elevators, ipaddr)
+
 	for floor := 0; floor < N_FLOORS; floor++ {
 		for button_type := 0; button_type < 2; button_type++ {
 			if orders_to_dist[floor][button_type] == 1 {
@@ -231,44 +186,42 @@ func removeElevator(ipaddr string) {
 	fmt.Println("Deleted", ipaddr, "\n")
 }
 
-// Bruker kostfunksjonen for å legge til ny ordre
-// Returnerer den optimale IP-adressen
 func appendOrder(button_type int, button_floor int) string {
-	fmt.Printf("Appending order\n")
 	var button_dir string
 	var optimal_elevatorIP string
-	// Setter først kost urimelig høyt
 	cost := 100
 
 	if button_type == 0 {
 		button_dir = "up"
+
 	} else if button_type == 1 {
 		button_dir = "down"
+
 	} else if button_type == 2 {
 		temp_elev := Active_elevators[my_ipaddr]
-		// TROR DETTE ER UNØDVENDIG. BØR I HVERT FALL OPTIMALISERES
+
 		for i := 0; i < 3; i++ {
 			temp_elev.ORDER_MATRIX[button_floor][i] = 1
 		}
+
 		internal_orders[button_floor] = byte(1)
 
 		_, w_err := order_file.WriteAt(internal_orders, 0)
 		if w_err != nil {
 			fmt.Println("write error:", w_err)
 		}
-		// temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 
 		Active_elevators[my_ipaddr] = temp_elev
-
 		return "nil"
 	}
 
 	for ipaddr := range Active_elevators {
-		// fmt.Println("Cost:", costFunction(ipaddr, button_floor, button_dir))
 		new_cost := costFunction(ipaddr, button_floor, button_dir)
+
 		if new_cost < cost {
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
+
 		} else if new_cost == cost {
 			old_ip_num, _ := strconv.Atoi(optimal_elevatorIP[12:len(optimal_elevatorIP)])
 			new_ip_num, _ := strconv.Atoi(ipaddr[12:len(ipaddr)])
@@ -278,11 +231,11 @@ func appendOrder(button_type int, button_floor int) string {
 			}
 		}
 	}
-	// fmt.Println("Cost:", cost)
-	// legger inn ordre i køen til den optimale heisen
+
 	temp_elev := Active_elevators[optimal_elevatorIP]
 	temp_elev.ORDER_MATRIX[button_floor][button_type] = 1
 	Active_elevators[optimal_elevatorIP] = temp_elev
+
 	return optimal_elevatorIP
 }
 
@@ -294,7 +247,6 @@ func deleteOrder(ipaddr string, floor int) {
 	Active_elevators[ipaddr] = temp_elev
 
 	internal_orders[floor] = byte(0)
-	fmt.Println(internal_orders)
 	_, w_err := order_file.WriteAt(internal_orders, 0)
 	if w_err != nil {
 		fmt.Println("write error:", w_err)
@@ -305,7 +257,6 @@ func costFunction(elevator_ip string, order_floor int, button_dir string) int {
 	cost := 0
 	current_elevator := Active_elevators[elevator_ip]
 
-	//Omregner etg. nr. til posisjonsnr. (Ihht. structen Elevator)
 	order_floor_pos := order_floor * 2
 	dest_pos := current_elevator.DESTINATION * 2
 
@@ -323,7 +274,6 @@ func costFunction(elevator_ip string, order_floor int, button_dir string) int {
 			if dest_pos >= order_floor_pos {
 				cost = order_floor_pos - current_elevator.POSITION
 			} else {
-				// + 3 sek for dør-åpen-ventetid før man kjører videre mot bestilling
 				cost = order_floor_pos - current_elevator.POSITION + 3
 			}
 		} else {
@@ -352,7 +302,6 @@ func costFunction(elevator_ip string, order_floor int, button_dir string) int {
 	return cost
 }
 
-// Får inn ny info fra heisManager (evt. timeout). Mottar pos og dir fra tilstandsmaskin.
 func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) { //, c_pos_from_statemachine chan int, c_dir_from_statemachine chan int){
 	var elev_info ElevInfo
 	var last_info ElevInfo
@@ -375,11 +324,10 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 				updateActiveElevators(elev_info)
 
 				if elev_info.F_BUTTONPRESS {
-					button_order = handleButtonpress(elev_info,c_queMan_output, c_queMan_ack_order)
+					button_order = handleButtonpress(elev_info, c_queMan_output, c_queMan_ack_order)
 
 				} else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
-					fmt.Printf("queue: Order completed, deleting\n")
 
 					for i := 0; i < 3; i++ {
 						button_output := Output{0, 0, i, elev_info.POSITION, 0, -1}
@@ -389,7 +337,7 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 				last_info = elev_info
 
 			} else {
-				last_info = elev_info				
+				last_info = elev_info
 			}
 
 		case peerUpdate := <-c_peerListUpdate:
@@ -421,7 +369,6 @@ func findNewDestination(c_to_statemachine chan int) {
 			for i := pos_floor + 1; i < N_FLOORS; i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i < Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -431,7 +378,6 @@ func findNewDestination(c_to_statemachine chan int) {
 
 				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i > pos_floor {
 					dest = i
-					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -451,7 +397,6 @@ func findNewDestination(c_to_statemachine chan int) {
 			for i := pos_floor - 1; i >= 0; i-- {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i > Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
-					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -461,7 +406,6 @@ func findNewDestination(c_to_statemachine chan int) {
 
 				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i < pos_floor {
 					dest = i
-					fmt.Println("queue: New destination floor: ", dest)
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
@@ -474,23 +418,23 @@ func findNewDestination(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
 			pos_floor = Active_elevators[my_ipaddr].POSITION / 2
 			for i := 0; i < (N_FLOORS); i++ {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { 
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 {
 					dest = i
-					
+
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					
+
 					printActiveElevators()
 					break
 
 				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 {
-					dest = i					
+					dest = i
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_to_statemachine <- dest					
+					c_to_statemachine <- dest
 					printActiveElevators()
 					break
 				}
@@ -564,10 +508,58 @@ func updateActiveElevators(elev_info ElevInfo) {
 		temp_elev.POSITION = elev_info.POSITION * 2
 	}
 
-	
 	if elev_info.IPADDR != my_ipaddr {
 		temp_elev.DESTINATION = elev_info.DESTINATION
 	}
 
-	Active_elevators[elev_info.IPADDR] = temp_elev	
+	Active_elevators[elev_info.IPADDR] = temp_elev
+}
+
+// For debugging purposes only
+func printActiveElevators() {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	ipstr, infostr, orderstr, orderstr1, orderstr2, orderstr3, orderstr4 := "", "", "", "", "", "", ""
+	// infostr := ""
+	// orderstr := ""
+	for key, elev := range Active_elevators {
+		ipstr += "Elevator: " + key + "\t"
+		infostr += "Position: " + strconv.Itoa(elev.POSITION) + "   Direction: " + strconv.Itoa(elev.DIRECTION) + "   Destination: " + strconv.Itoa(elev.DESTINATION) + "\t"
+
+		tempstr := "     "
+		for i := 0; i < 3; i++ {
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[3][i]) + "     "
+		}
+		orderstr1 += "Floor: 3" + tempstr + "\t"
+
+		tempstr = "     "
+		for i := 0; i < 3; i++ {
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[2][i]) + "     "
+		}
+		orderstr2 += "Floor: 2" + tempstr + "\t"
+
+		tempstr = "     "
+		for i := 0; i < 3; i++ {
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[1][i]) + "     "
+		}
+		orderstr3 += "Floor: 1" + tempstr + "\t"
+
+		tempstr = "     "
+		for i := 0; i < 3; i++ {
+			tempstr += strconv.Itoa(elev.ORDER_MATRIX[0][i]) + "     "
+		}
+		orderstr4 += "Floor: 0" + tempstr + "\t"
+
+		orderstr += "Orders:     OPP   NED   INNE" + "\t"
+	}
+	fmt.Fprintln(w, ipstr)
+	fmt.Fprintln(w, infostr)
+	fmt.Fprintln(w, orderstr)
+	fmt.Fprintln(w, orderstr1)
+	fmt.Fprintln(w, orderstr2)
+	fmt.Fprintln(w, orderstr3)
+	fmt.Fprintln(w, orderstr4)
+	fmt.Printf("*********************************************************************************************\n")
+	w.Flush()
+	fmt.Printf("*********************************************************************************************\n")
 }

@@ -86,8 +86,8 @@ func InitStatemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMa
 	}
 	sendOutput(stopMotor, c_stMachine_output)
 	sendOutput(openDoor, c_stMachine_output)
-	// Floor indicator lamp
-	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output)
+
+	sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output) // Floor indicator lamp
 
 	elevatorState.DIRECTION = 0
 	elevatorState.MOVING = false
@@ -108,17 +108,13 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 	closeDoor := Output{0, 2, -1, -1, 0, -1}
 
 	doorTimer := time.NewTimer(3 * time.Second)
-	//doorTimer.Stop()
 
 	for {
 		select {
 		case elevatorState.DESTINATION = <-c_queMan_destination:
-			fmt.Printf("SM: Destination %d \n", elevatorState.DESTINATION)
 			switch state {
 
-			case "move":
-
-			case "at_floor": // If you get a new destination before doortimer expires
+			case "at_floor":
 				<-doorTimer.C
 				sendOutput(closeDoor, c_stMachine_output)
 				fallthrough
@@ -146,19 +142,15 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 					sendState(elevatorState, c_stMachine_state)
 					doorTimer.Reset(3 * time.Second)
 				}
-
 			}
 
 		case elevatorState.POSITION = <-c_io_floor:
-			fmt.Printf("SM: Floorinput \n")
-			fmt.Println(elevatorState.POSITION)
 			sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output) // Lighting floor lamp
 
 			switch state {
 			case "move":
 				if elevatorState.POSITION == elevatorState.DESTINATION {
 					sendOutput(stopMotor, c_stMachine_output)
-
 					fmt.Printf("SM: Arrived at floor %d \n", elevatorState.POSITION)
 					sendOutput(openDoor, c_stMachine_output)
 					doorTimer.Reset(3 * time.Second)
@@ -178,7 +170,6 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 			sendState(elevatorState, c_stMachine_state)
 
 		case <-doorTimer.C:
-			fmt.Printf("SM Doortimer\n")
 			switch state {
 			case "at_floor":
 				sendOutput(closeDoor, c_stMachine_output)

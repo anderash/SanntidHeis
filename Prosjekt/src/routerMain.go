@@ -20,18 +20,18 @@ func main() {
 	my_ipaddr := network.GetOwnIP()
 	fmt.Printf("Versjon 4, ip %s \n", my_ipaddr)
 
-	c_io_button := make(chan []byte) 		//Type: driver.Input; io -> router
-	c_io_floor := make(chan int)     		//Type: int 		; io -> stMachine
+	c_io_button := make(chan []byte) //Type: driver.Input; io -> router
+	c_io_floor := make(chan int)     //Type: int 		; io -> stMachine
 
-	c_peerUpdate := make(chan string)  		//Type: string		; network -> 
-	c_toNetwork := make(chan []byte)   		//Type: queue.ElevInfo
-	c_fromNetwork := make(chan []byte) 		//Type: queue.ElevInfo
+	c_peerUpdate := make(chan string)  //Type: string		; network ->
+	c_toNetwork := make(chan []byte)   //Type: queue.ElevInfo
+	c_fromNetwork := make(chan []byte) //Type: queue.ElevInfo
 
-	c_router_info := make(chan []byte) 		//Type: queue.ElevInfo
-	
-	c_queMan_dest := make(chan int)        	//Type: int dest
-	c_queMan_output := make(chan []byte)   	//Type: queue.Output This channel sets button lights in IO from queueManager
-	c_queMan_ackOrder := make(chan []byte) 	//Type: queue.Elevinfo 
+	c_router_info := make(chan []byte) //Type: queue.ElevInfo
+
+	c_queMan_dest := make(chan int)        //Type: int dest
+	c_queMan_output := make(chan []byte)   //Type: queue.Output This channel sets button lights in IO from queueManager
+	c_queMan_ackOrder := make(chan []byte) //Type: queue.Elevinfo
 
 	c_stMachine_output := make(chan []byte) //Type: stateMachine.Output
 	c_stMachine_state := make(chan []byte)  //Type: stateMachine.ElevState
@@ -57,7 +57,6 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	var buttonpress driver.Input
 
 	program_timer := time.NewTimer(10 * time.Second)
-	//doorTimer.Stop()
 
 	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, false, 0, 0}
 
@@ -86,7 +85,6 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			if json_err != nil {
 				fmt.Println("router state unMarshal JSON error: ", json_err)
 			}
-			fmt.Println(state)
 			myElevator.F_NEW_INFO = true
 			myElevator.POSITION = state.POSITION
 			myElevator.DIRECTION = state.DIRECTION
