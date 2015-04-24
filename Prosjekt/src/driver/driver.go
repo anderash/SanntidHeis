@@ -82,7 +82,7 @@ var button_status = [N_FLOORS][3]int{
 
 var floor_status = [N_FLOORS]int{0, 0, 0, 0}
 
-func InitDriver(c_io_button chan []byte, c_io_floor chan int, c_stateMach_output chan []byte, c_queMan_output chan []byte) {
+func InitDriver(c_io_button chan []byte, c_io_floor chan int, c_stMachine_output chan []byte, c_queMan_output chan []byte) {
 	Io_init()
 
 	// Zero all floor button lamps
@@ -104,7 +104,7 @@ func InitDriver(c_io_button chan []byte, c_io_floor chan int, c_stateMach_output
 
 	go checkFloor(c_io_floor)
 	go checkButtons(c_io_button)
-	go Send_output(c_stateMach_output, c_queMan_output)
+	go Send_output(c_stMachine_output, c_queMan_output)
 
 	fmt.Printf("Driver initiated!\n")
 }
@@ -125,7 +125,6 @@ func getFloorSignal() int {
 	return -1
 }
 
-// Denne vil ikke få med seg knappetrykk dersom noen holder en knapp inne i en lavere etg. Må fikses!
 func getButtonSignal() (int, int) {
 	for floor := 0; floor < N_FLOORS; floor++ {
 		for button := 0; button < 3; button++ {
@@ -221,11 +220,11 @@ func checkFloor(c_io_floor chan int) {
 	}
 }
 
-func Send_output(c_stateMach_output chan []byte, c_queMan_output chan []byte) {
+func Send_output(c_stMachine_output chan []byte, c_queMan_output chan []byte) {
 	var output Output
 	for {
 		select {
-		case enc_output := <-c_stateMach_output:
+		case enc_output := <-c_stMachine_output:
 			err3 := json.Unmarshal(enc_output, &output)
 			if err3 != nil {
 				fmt.Println("Driver_o JSON error: ", err3)

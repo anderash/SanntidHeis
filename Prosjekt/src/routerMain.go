@@ -18,24 +18,23 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	my_ipaddr := network.GetOwnIP()
-	fmt.Printf("Versjon 3, ip %s \n", my_ipaddr)
+	fmt.Printf("Versjon 4, ip %s \n", my_ipaddr)
 
-	c_io_button := make(chan []byte) //driver.Input
-	c_io_floor := make(chan int)     // int floor
+	c_io_button := make(chan []byte) 		//Type: driver.Input; io -> router
+	c_io_floor := make(chan int)     		//Type: int 		; io -> stMachine
 
-	c_peerUpdate := make(chan string)  //IP-adress
-	c_toNetwork := make(chan []byte)   //queue.ElevInfo
-	c_fromNetwork := make(chan []byte) //queue.ElevInfo
+	c_peerUpdate := make(chan string)  		//Type: string		; network -> 
+	c_toNetwork := make(chan []byte)   		//Type: queue.ElevInfo
+	c_fromNetwork := make(chan []byte) 		//Type: queue.ElevInfo
 
-	c_router_info := make(chan []byte) //queue.ElevInfo
+	c_router_info := make(chan []byte) 		//Type: queue.ElevInfo
+	
+	c_queMan_dest := make(chan int)        	//Type: int dest
+	c_queMan_output := make(chan []byte)   	//Type: queue.Output This channel sets button lights in IO from queueManager
+	c_queMan_ackOrder := make(chan []byte) 	//Type: queue.Elevinfo 
 
-	// c_queMan_button := make(chan []byte) // This channel sets button lights in IO from queueManager
-	c_queMan_dest := make(chan int)        // int dest
-	c_queMan_output := make(chan []byte)   // This channel sets button lights in IO from queueManager
-	c_queMan_ackOrder := make(chan []byte) //queue.Elevinfo (Sends acknowledgment if order is handled by my IP for broadcasting)
-
-	c_stMachine_output := make(chan []byte) //stateMachine.Output
-	c_stMachine_state := make(chan []byte)  //stateMachine.Output
+	c_stMachine_output := make(chan []byte) //Type: stateMachine.Output
+	c_stMachine_state := make(chan []byte)  //Type: stateMachine.ElevState
 	c_forloop := make(chan bool)
 
 	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_queMan_ackOrder, c_toNetwork, c_router_info)
@@ -52,13 +51,6 @@ func main() {
 
 }
 
-/*
-The router takes in info fromchannels,
-and send it to those modules that need the update:
-IO button channel: toNet(myIP, info), queue(myIP, info)
-IO floor channel
-
-*/
 func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []byte, c_stMachine_state <-chan []byte, c_queMan_ackOrder chan []byte, c_toNetwork chan<- []byte, c_router_info chan<- []byte) {
 
 	var state stateMachine.ElevState
@@ -73,10 +65,9 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 		select {
 
 		case enc_button_input := <-c_io_button:
-			fmt.Printf("Router: ButtonInput \n")
 			json_err := json.Unmarshal(enc_button_input, &buttonpress)
 			if json_err != nil {
-				fmt.Println("router unMarshal JSON error: ", json_err)
+				fmt.Println("router button unMarshal JSON error: ", json_err)
 			}
 			myElevator.F_NEW_INFO = true
 			myElevator.F_BUTTONPRESS = true
@@ -91,10 +82,9 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 			myElevator.F_BUTTONPRESS = false
 
 		case enc_state := <-c_stMachine_state:
-			fmt.Printf("Router: StateInput \n")
 			json_err := json.Unmarshal(enc_state, &state)
 			if json_err != nil {
-				fmt.Println("router unMarshal JSON error: ", json_err)
+				fmt.Println("router state unMarshal JSON error: ", json_err)
 			}
 			fmt.Println(state)
 			myElevator.F_NEW_INFO = true
@@ -121,7 +111,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 				fmt.Printf("10 sek since last state-update, in idle\n")
 				program_timer.Reset(10 * time.Second)
 			} else {
-				fmt.Printf("Encountered an error, crashing program. Call maintnaince \n")
+				fmt.Printf("Encountered an error. Elevator standing. Crashing program. Call maintnaince \n")
 				os.Exit(1)
 			}
 		}
@@ -131,7 +121,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 func sendElev(info queue.ElevInfo, channel chan<- []byte) {
 	encoded_output, err := json.Marshal(info)
 	if err != nil {
-		fmt.Println("SM JSON error: ", err)
+		fmt.Println("sendElev JSON error: ", err)
 	}
 	channel <- encoded_output
 }
