@@ -23,7 +23,6 @@ type ElevInfo struct {
 	IPADDR     string
 	F_NEW_INFO bool
 
-	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
 	F_ACK_ORDER   bool
 

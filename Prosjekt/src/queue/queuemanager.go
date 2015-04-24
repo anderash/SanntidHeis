@@ -50,7 +50,6 @@ type ElevInfo struct {
 	IPADDR     string
 	F_NEW_INFO bool
 
-	F_DEAD_ELEV   bool
 	F_BUTTONPRESS bool
 	F_ACK_ORDER   bool
 
@@ -119,6 +118,7 @@ var Active_elevators = make(map[string]Elevator)
 var my_ipaddr string
 var internal_orders []byte
 var order_file *os.File
+var acknowledgeTimer *time.Timer
 
 func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachine chan int, c_peerListUpdate chan string, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) {
 	my_ipaddr = ipaddr
@@ -154,21 +154,12 @@ func InitQueuemanager(ipaddr string, c_router_info chan []byte, c_to_statemachin
 	fmt.Println("Elevator", Active_elevators[my_ipaddr].IPADDR, "online\n")
 
 	go processNewInfo(c_router_info, c_peerListUpdate, c_queMan_output, c_queMan_ack_order)
-	go checkQueue(c_to_statemachine)
+	go findNewDestination(c_to_statemachine)
 	fmt.Printf("Queuemanager operational\n")
 }
 
-// Denne funkjsonen brukes kun ifm debugging
-func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int) {
-	temp := Active_elevators[ipaddr]
-	temp.POSITION = position
-	temp.DIRECTION = direction
-	temp.DESTINATION = destinasjon_pos
-	Active_elevators[ipaddr] = temp
 
-}
-
-func AppendElevator(elev_info ElevInfo) {
+func appendElevator(elev_info ElevInfo) {
 	new_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++ {
 		new_ordermatrix[i] = []int{0, 0, 0}
@@ -178,24 +169,8 @@ func AppendElevator(elev_info ElevInfo) {
 	fmt.Println("Elevator", Active_elevators[elev_info.IPADDR].IPADDR, "online\n")
 }
 
-func PrintActiveElevators() {
-	fmt.Printf("************************************************************\n")
-	for i := range Active_elevators {
-		fmt.Println("Elevator:", Active_elevators[i].IPADDR)
-		fmt.Println("Position:", Active_elevators[i].POSITION, "Direction:", Active_elevators[i].DIRECTION, "Destination floor:", Active_elevators[i].DESTINATION)
-		// fmt.Println("Direction:", Active_elevators[i].DIRECTION)
-		// fmt.Println("Destination:", Active_elevators[i].DESTINATION)
-		fmt.Printf("Orders:\n")
-		for floor := 0; floor < N_FLOORS; floor++ {
-			fmt.Println("Floor", floor+1, ":", Active_elevators[i].ORDER_MATRIX[floor])
-		}
-		fmt.Printf("\n")
-	}
-	fmt.Printf("************************************************************\n")
-	// fmt.Println("\n")
-}
 
-func PrintActiveElevators2() {
+func printActiveElevators() {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	ipstr, infostr, orderstr, orderstr1, orderstr2, orderstr3, orderstr4 := "", "", "", "", "", "", ""
@@ -243,13 +218,13 @@ func PrintActiveElevators2() {
 	fmt.Printf("*********************************************************************************************\n")
 }
 
-func RemoveElevator(ipaddr string) {
+func removeElevator(ipaddr string) {
 	orders_to_dist := Active_elevators[ipaddr].ORDER_MATRIX
 	delete(Active_elevators, ipaddr)
 	for floor := 0; floor < N_FLOORS; floor++ {
 		for button_type := 0; button_type < 2; button_type++ {
 			if orders_to_dist[floor][button_type] == 1 {
-				AppendOrder(button_type, floor)
+				appendOrder(button_type, floor)
 			}
 		}
 	}
@@ -258,7 +233,7 @@ func RemoveElevator(ipaddr string) {
 
 // Bruker kostfunksjonen for å legge til ny ordre
 // Returnerer den optimale IP-adressen
-func AppendOrder(button_type int, button_floor int) string {
+func appendOrder(button_type int, button_floor int) string {
 	fmt.Printf("Appending order\n")
 	var button_dir string
 	var optimal_elevatorIP string
@@ -289,8 +264,8 @@ func AppendOrder(button_type int, button_floor int) string {
 	}
 
 	for ipaddr := range Active_elevators {
-		// fmt.Println("Cost:", CostFunction(ipaddr, button_floor, button_dir))
-		new_cost := CostFunction(ipaddr, button_floor, button_dir)
+		// fmt.Println("Cost:", costFunction(ipaddr, button_floor, button_dir))
+		new_cost := costFunction(ipaddr, button_floor, button_dir)
 		if new_cost < cost {
 			cost = new_cost
 			optimal_elevatorIP = ipaddr
@@ -326,7 +301,7 @@ func deleteOrder(ipaddr string, floor int) {
 	}
 }
 
-func CostFunction(elevator_ip string, order_floor int, button_dir string) int {
+func costFunction(elevator_ip string, order_floor int, button_dir string) int {
 	cost := 0
 	current_elevator := Active_elevators[elevator_ip]
 
@@ -383,7 +358,7 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 	var last_info ElevInfo
 	var button_order ElevInfo
 
-	acknowledgeTimer := time.NewTimer(250 * time.Millisecond)
+	acknowledgeTimer = time.NewTimer(250 * time.Millisecond)
 	acknowledgeTimer.Stop()
 
 	for {
@@ -394,80 +369,31 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 				fmt.Println("queMan Unmarshal error: ", err)
 			}
 			if _, in_list := Active_elevators[elev_info.IPADDR]; !in_list {
-				AppendElevator(elev_info)
+				appendElevator(elev_info)
 			}
 			if elev_info.F_NEW_INFO && (elev_info != last_info) {
+				updateActiveElevators(elev_info)
 
-				temp_elev := Active_elevators[elev_info.IPADDR]
-
-				if elev_info.MOVING {
-					temp_elev.POSITION = elev_info.POSITION*2 + elev_info.DIRECTION
-					if temp_elev.POSITION == -1 {
-						temp_elev.POSITION = 0
-					} else if temp_elev.POSITION == N_FLOORS*2-1 {
-						temp_elev.POSITION = elev_info.POSITION * 2
-					}
-				} else {
-					temp_elev.POSITION = elev_info.POSITION * 2
-				}
-
-				temp_elev.DIRECTION = elev_info.DIRECTION
-				if elev_info.IPADDR != my_ipaddr {
-					temp_elev.DESTINATION = elev_info.DESTINATION
-				}
-
-				Active_elevators[elev_info.IPADDR] = temp_elev
-
-				if elev_info.F_BUTTONPRESS && !elev_info.F_ACK_ORDER {
-					optimal_ip := AppendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
-					button_output := Output{0, 0, elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR, 1, -1}
-					sendButtonLamp(button_output, c_queMan_output)
-					switch {
-					case elev_info.IPADDR == my_ipaddr:
-						if optimal_ip != my_ipaddr {
-							acknowledgeTimer.Reset(250 * time.Millisecond)
-							button_order = elev_info
-							button_order.IPADDR = optimal_ip
-						}
-
-					case elev_info.IPADDR != my_ipaddr:
-						if optimal_ip == my_ipaddr {
-							button_order = elev_info
-							button_order.F_ACK_ORDER = true
-							sendElev(button_order, c_queMan_ack_order)
-							fmt.Printf("Got an optimal order, taking %d \n", button_order.BUTTONFLOOR)
-						}
-					}
-
-				} else if elev_info.F_BUTTONPRESS && elev_info.F_ACK_ORDER {
-					acknowledgeTimer.Stop()
+				if elev_info.F_BUTTONPRESS {
+					button_order = handleButtonpress(elev_info,c_queMan_output, c_queMan_ack_order)
 
 				} else if elev_info.POSITION == elev_info.DESTINATION {
 					deleteOrder(elev_info.IPADDR, elev_info.POSITION)
 					fmt.Printf("queue: Order completed, deleting\n")
 
-					// Slukker button lamps i aktuell etg
-					// Mulig dette bør gjøres på en annen måte
 					for i := 0; i < 3; i++ {
 						button_output := Output{0, 0, i, elev_info.POSITION, 0, -1}
 						sendButtonLamp(button_output, c_queMan_output)
 					}
-
 				}
-
 				last_info = elev_info
 
 			} else {
-				last_info = elev_info
-				fmt.Printf("queue: No new info\n")
-			}
-
-			if elev_info.F_DEAD_ELEV == true {
-				RemoveElevator(elev_info.IPADDR)
+				last_info = elev_info				
 			}
 
 		case peerUpdate := <-c_peerListUpdate:
-			RemoveElevator(peerUpdate)
+			removeElevator(peerUpdate)
 
 		case <-acknowledgeTimer.C:
 			if button_order.IPADDR == my_ipaddr {
@@ -480,12 +406,10 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 	}
 }
 
-// Sjekker (ikke lenger hele tiden, men hvert 10 ms) køen, oppdaterer next destination og sender denne til tilstandsmaskin.
-func checkQueue(c_to_statemachine chan int) {
+func findNewDestination(c_to_statemachine chan int) {
 	var dest int
 	var pos_floor int
 	for {
-		// elev := Active_elevators[my_ipaddr]
 		switch {
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
 			pos := Active_elevators[my_ipaddr].POSITION
@@ -502,10 +426,9 @@ func checkQueue(c_to_statemachine chan int) {
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					PrintActiveElevators2()
+					printActiveElevators()
 					break
 
-					// Hvis heisen er på dest sjekker den alle etg ovenfor destinasjonen
 				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i > pos_floor {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
@@ -513,7 +436,7 @@ func checkQueue(c_to_statemachine chan int) {
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					PrintActiveElevators2()
+					printActiveElevators()
 					break
 				}
 			}
@@ -533,10 +456,9 @@ func checkQueue(c_to_statemachine chan int) {
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					PrintActiveElevators2()
+					printActiveElevators()
 					break
 
-					// Hvis heisen er på dest sjekker den alle etg nedenfor destinasjonen
 				} else if pos_floor == Active_elevators[my_ipaddr].DESTINATION && Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i < pos_floor {
 					dest = i
 					fmt.Println("queue: New destination floor: ", dest)
@@ -544,7 +466,7 @@ func checkQueue(c_to_statemachine chan int) {
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					PrintActiveElevators2()
+					printActiveElevators()
 					break
 				}
 			}
@@ -552,26 +474,24 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
 			pos_floor = Active_elevators[my_ipaddr].POSITION / 2
 			for i := 0; i < (N_FLOORS); i++ {
-				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
+				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { 
 					dest = i
-					// fmt.Println("New destination floor: ", dest)
+					
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
 					c_to_statemachine <- dest
-					// time.Sleep(10 * time.Millisecond)
-					PrintActiveElevators2()
+					
+					printActiveElevators()
 					break
 
-				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
-					dest = i
-					// fmt.Println("New destination floor: ", dest)
+				} else if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 {
+					dest = i					
 					temp_elev := Active_elevators[my_ipaddr]
 					temp_elev.DESTINATION = dest
 					Active_elevators[my_ipaddr] = temp_elev
-					c_to_statemachine <- dest
-					// time.Sleep(10 * time.Millisecond)
-					PrintActiveElevators2()
+					c_to_statemachine <- dest					
+					printActiveElevators()
 					break
 				}
 			}
@@ -596,4 +516,58 @@ func sendElev(info ElevInfo, channel chan<- []byte) {
 	}
 	channel <- encoded_output
 
+}
+
+func handleButtonpress(elev_info ElevInfo, c_queMan_output chan []byte, c_queMan_ack_order chan []byte) ElevInfo {
+	var button_order ElevInfo
+
+	if !elev_info.F_ACK_ORDER {
+		optimal_ip := appendOrder(elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR)
+		button_output := Output{0, 0, elev_info.BUTTON_TYPE, elev_info.BUTTONFLOOR, 1, -1}
+		sendButtonLamp(button_output, c_queMan_output)
+		switch {
+		case elev_info.IPADDR == my_ipaddr:
+			if optimal_ip != my_ipaddr {
+				acknowledgeTimer.Reset(250 * time.Millisecond)
+				button_order = elev_info
+				button_order.IPADDR = optimal_ip
+			}
+
+		case elev_info.IPADDR != my_ipaddr:
+			if optimal_ip == my_ipaddr {
+				button_order = elev_info
+				button_order.F_ACK_ORDER = true
+				sendElev(button_order, c_queMan_ack_order)
+				fmt.Printf("Got an optimal order, taking %d \n", button_order.BUTTONFLOOR)
+			}
+		}
+
+	} else {
+		acknowledgeTimer.Stop()
+		button_order = elev_info
+	}
+	return button_order
+}
+
+func updateActiveElevators(elev_info ElevInfo) {
+	temp_elev := Active_elevators[elev_info.IPADDR]
+	temp_elev.DIRECTION = elev_info.DIRECTION
+
+	if elev_info.MOVING {
+		temp_elev.POSITION = elev_info.POSITION*2 + elev_info.DIRECTION
+		if temp_elev.POSITION == -1 {
+			temp_elev.POSITION = 0
+		} else if temp_elev.POSITION == N_FLOORS*2-1 {
+			temp_elev.POSITION = elev_info.POSITION * 2
+		}
+	} else {
+		temp_elev.POSITION = elev_info.POSITION * 2
+	}
+
+	
+	if elev_info.IPADDR != my_ipaddr {
+		temp_elev.DESTINATION = elev_info.DESTINATION
+	}
+
+	Active_elevators[elev_info.IPADDR] = temp_elev	
 }

@@ -59,7 +59,7 @@ func router(my_ipaddr string, c_fromNetwork <-chan []byte, c_io_button <-chan []
 	program_timer := time.NewTimer(10 * time.Second)
 	//doorTimer.Stop()
 
-	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, false, 0, 0, 0, false, 0, 0}
+	myElevator := queue.ElevInfo{my_ipaddr, true, false, false, 0, 0, 0, false, 0, 0}
 
 	for {
 		select {

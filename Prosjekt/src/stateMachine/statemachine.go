@@ -113,6 +113,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 	for {
 		select {
 		case elevatorState.DESTINATION = <-c_queMan_destination:
+			fmt.Printf("SM: Destination %d \n", elevatorState.DESTINATION)
 			switch state {
 
 			case "move":
@@ -149,6 +150,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 			}
 
 		case elevatorState.POSITION = <-c_io_floor:
+			fmt.Printf("SM: Floorinput \n")
 			fmt.Println(elevatorState.POSITION)
 			sendOutput(Output{0, 1, -1, elevatorState.POSITION, 1, -1}, c_stMachine_output) // Lighting floor lamp
 
@@ -176,6 +178,7 @@ func statemachine(c_queMan_destination chan int, c_io_floor chan int, c_stMachin
 			sendState(elevatorState, c_stMachine_state)
 
 		case <-doorTimer.C:
+			fmt.Printf("SM Doortimer\n")
 			switch state {
 			case "at_floor":
 				sendOutput(closeDoor, c_stMachine_output)
