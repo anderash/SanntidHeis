@@ -168,12 +168,12 @@ func SetElevator(ipaddr string, position int, direction int, destinasjon_pos int
 
 }
 
-func AppendElevator(ipaddr string) {
+func AppendElevator(elev_info ElevInfo) {
 	new_ordermatrix := make([][]int, N_FLOORS)
 	for i := 0; i < N_FLOORS; i++ {
 		new_ordermatrix[i] = []int{0, 0, 0}
 	}
-	new_elevator := Elevator{ipaddr, 0, 0, 0, new_ordermatrix}
+	new_elevator := Elevator{elev_info:IPADDR, elev_info.POSITION, elev_info.DIRECTION, elev_info.DESTINATION, new_ordermatrix}
 	Active_elevators[ipaddr] = new_elevator
 	fmt.Println("Elevator", Active_elevators[ipaddr].IPADDR, "online\n")
 }
@@ -394,7 +394,7 @@ func processNewInfo(c_router_info chan []byte, c_peerListUpdate chan string, c_q
 				fmt.Println("queMan Unmarshal error: ", err)
 			}
 			if _, in_list := Active_elevators[elev_info.IPADDR]; !in_list {
-				AppendElevator(elev_info.IPADDR)
+				AppendElevator(elev_info)
 			}
 			if elev_info.F_NEW_INFO && (elev_info != last_info) {
 
@@ -493,9 +493,9 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == 1:
 			pos := Active_elevators[my_ipaddr].POSITION
 			if Active_elevators[my_ipaddr].POSITION%2 == 0 {
-				pos_floor = (pos+2)/2 - 1
+				pos_floor = pos/2
 			} else {
-				pos_floor = ((pos+1)+2)/2 - 1
+				pos_floor = (pos+1)/2 - 1
 			}
 			for i := pos_floor+1; i < N_FLOORS; i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 && i < Active_elevators[my_ipaddr].DESTINATION {
@@ -524,9 +524,9 @@ func checkQueue(c_to_statemachine chan int) {
 		case Active_elevators[my_ipaddr].DIRECTION == -1:
 			pos := Active_elevators[my_ipaddr].POSITION
 			if Active_elevators[my_ipaddr].POSITION%2 == 0 {
-				pos_floor = (pos+2)/2 - 1
+				pos_floor = pos/2
 			} else {
-				pos_floor = ((pos-1)+2)/2 - 1
+				pos_floor = (pos+1)/2
 			}
 			for i := pos_floor-1; i >= 0; i-- {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][1] == 1 && i > Active_elevators[my_ipaddr].DESTINATION {
@@ -553,7 +553,7 @@ func checkQueue(c_to_statemachine chan int) {
 			}
 
 		case Active_elevators[my_ipaddr].DIRECTION == 0:
-			pos_floor = (Active_elevators[my_ipaddr].POSITION+2)/2 - 1
+			pos_floor = Active_elevators[my_ipaddr].POSITION/2
 			for i := 0; i < (N_FLOORS); i++ {
 				if Active_elevators[my_ipaddr].ORDER_MATRIX[i][0] == 1 { //&& i != Active_elevators[my_ipaddr].DESTINATION {
 					dest = i
