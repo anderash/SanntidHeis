@@ -1,4 +1,3 @@
-// NETWORK MODULE //
 package network
 
 import (
