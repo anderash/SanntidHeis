@@ -23,19 +23,19 @@ func main() {
 	c_io_button := make(chan []byte) //Type: driver.Input; io -> router
 	c_io_floor := make(chan int)     //Type: int 		; io -> stMachine
 
-	c_peerUpdate := make(chan string)  //Type: string		; network ->
-	c_toNetwork := make(chan []byte)   //Type: queue.ElevInfo
-	c_fromNetwork := make(chan []byte) //Type: queue.ElevInfo
+	c_peerUpdate := make(chan string)  //Type: string		; network -> queueManager
+	c_toNetwork := make(chan []byte)   //Type: queue.ElevInfo; router -> network
+	c_fromNetwork := make(chan []byte) //Type: queue.ElevInfo; network -> router -> queueManager
 
-	c_router_info := make(chan []byte) //Type: queue.ElevInfo
+	c_router_info := make(chan []byte) //Type: queue.ElevInfo; router -> queueManager
 
-	c_queMan_dest := make(chan int)        //Type: int dest
-	c_queMan_output := make(chan []byte)   //Type: queue.Output This channel sets button lights in IO from queueManager
-	c_queMan_ackOrder := make(chan []byte) //Type: queue.Elevinfo
+	c_queMan_dest := make(chan int)        //Type: int dest; queueManager -> statemachine
+	c_queMan_output := make(chan []byte)   //Type: queue.Output; queueManager -> io
+	c_queMan_ackOrder := make(chan []byte) //Type: queue.Elevinfo; queueManager -> router -> network 
 
-	c_stMachine_output := make(chan []byte) //Type: stateMachine.Output
-	c_stMachine_state := make(chan []byte)  //Type: stateMachine.ElevState
-	c_forloop := make(chan bool)
+	c_stMachine_output := make(chan []byte) //Type: stateMachine.Output; statemachine -> io
+	c_stMachine_state := make(chan []byte)  //Type: stateMachine.ElevState; statemachine -> router
+	c_forloop := make(chan bool)	// To keep the main in a while-loop (forloop in go)
 
 	go router(my_ipaddr, c_fromNetwork, c_io_button, c_stMachine_state, c_queMan_ackOrder, c_toNetwork, c_router_info)
 
