@@ -17,10 +17,10 @@ type Input struct {
 	*/
 	BUTTON_TYPE int
 	/*
-			BUTTON_CALL_UP = 0
-		    BUTTON_CALL_DOWN = 1
-		    BUTTON_COMMAND = 2
-		    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 	FLOOR int
 }
@@ -41,10 +41,10 @@ type Output struct {
 
 	BUTTON_TYPE int
 	/*
-			BUTTON_CALL_UP = 0
-		    BUTTON_CALL_DOWN = 1
-		    BUTTON_COMMAND = 2
-		    NO_BUTTON = -1
+		BUTTON_CALL_UP = 0
+	    BUTTON_CALL_DOWN = 1
+	    BUTTON_COMMAND = 2
+	    NO_BUTTON = -1
 	*/
 
 	FLOOR int
